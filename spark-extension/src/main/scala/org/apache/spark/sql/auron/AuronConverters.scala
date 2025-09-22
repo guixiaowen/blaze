@@ -17,11 +17,9 @@
 package org.apache.spark.sql.auron
 
 import java.util.ServiceLoader
-
 import scala.annotation.tailrec
 import scala.collection.JavaConverters._
 import scala.collection.mutable
-
 import org.apache.commons.lang3.reflect.MethodUtils
 import org.apache.hadoop.hive.ql.io.parquet.MapredParquetOutputFormat
 import org.apache.spark.Partition
@@ -33,7 +31,7 @@ import org.apache.spark.sql.auron.AuronConvertStrategy.convertStrategyTag
 import org.apache.spark.sql.auron.AuronConvertStrategy.convertToNonNativeTag
 import org.apache.spark.sql.auron.AuronConvertStrategy.isNeverConvert
 import org.apache.spark.sql.auron.AuronConvertStrategy.joinSmallerSideTag
-import org.apache.spark.sql.auron.NativeConverters.{roundRobinTypeSupported, scalarTypeSupported, StubExpr}
+import org.apache.spark.sql.auron.NativeConverters.{StubExpr, roundRobinTypeSupported, scalarTypeSupported}
 import org.apache.spark.sql.auron.util.AuronLogUtils.logDebugPlanConversion
 import org.apache.spark.sql.catalyst.expressions.AggregateWindowFunction
 import org.apache.spark.sql.catalyst.expressions.Alias
@@ -90,54 +88,54 @@ import org.apache.spark.sql.hive.execution.InsertIntoHiveTable
 import org.apache.spark.sql.hive.execution.auron.plan.NativeHiveTableScanBase
 import org.apache.spark.sql.internal.SQLConf
 import org.apache.spark.sql.types.LongType
-
 import org.apache.auron.protobuf.EmptyPartitionsExecNode
 import org.apache.auron.protobuf.PhysicalPlanNode
 import org.apache.auron.sparkver
+import org.apache.spark.sql.auron.common.AuronSQLConf
 
 object AuronConverters extends Logging {
   def enableScan: Boolean =
-    getBooleanConf("spark.auron.enable.scan", defaultValue = true)
+    getBooleanConf(AuronSQLConf.ENABLED_SCAN.key)
   def enableProject: Boolean =
-    getBooleanConf("spark.auron.enable.project", defaultValue = true)
+    getBooleanConf(AuronSQLConf.ENABLED_PROJECT.key)
   def enableFilter: Boolean =
-    getBooleanConf("spark.auron.enable.filter", defaultValue = true)
+    getBooleanConf(AuronSQLConf.ENABLED_FILTER.key)
   def enableSort: Boolean =
-    getBooleanConf("spark.auron.enable.sort", defaultValue = true)
+    getBooleanConf(AuronSQLConf.ENABLED_SORT.key)
   def enableUnion: Boolean =
-    getBooleanConf("spark.auron.enable.union", defaultValue = true)
+    getBooleanConf(AuronSQLConf.ENABLED_UNION.key)
   def enableSmj: Boolean =
-    getBooleanConf("spark.auron.enable.smj", defaultValue = true)
+    getBooleanConf(AuronSQLConf.ENABLED_SMJ.key)
   def enableShj: Boolean =
-    getBooleanConf("spark.auron.enable.shj", defaultValue = true)
+    getBooleanConf(AuronSQLConf.ENABLED_SHJ.key)
   def enableBhj: Boolean =
-    getBooleanConf("spark.auron.enable.bhj", defaultValue = true)
+    getBooleanConf(AuronSQLConf.ENABLED_BHJ.key)
   def enableBnlj: Boolean =
-    getBooleanConf("spark.auron.enable.bnlj", defaultValue = true)
+    getBooleanConf(AuronSQLConf.ENABLED_BNLJ.key)
   def enableLocalLimit: Boolean =
-    getBooleanConf("spark.auron.enable.local.limit", defaultValue = true)
+    getBooleanConf(AuronSQLConf.ENABLED_LOCAL_LIMIT.key)
   def enableGlobalLimit: Boolean =
-    getBooleanConf("spark.auron.enable.global.limit", defaultValue = true)
+    getBooleanConf(AuronSQLConf.ENABLED_GLOBAL_LIMIT.key)
   def enableTakeOrderedAndProject: Boolean =
-    getBooleanConf("spark.auron.enable.take.ordered.and.project", defaultValue = true)
+    getBooleanConf(AuronSQLConf.ENABLED_TAKE_ORDERED_AND_PROJECT.key)
   def enableAggr: Boolean =
-    getBooleanConf("spark.auron.enable.aggr", defaultValue = true)
+    getBooleanConf(AuronSQLConf.ENABLED_AGGR.key)
   def enableExpand: Boolean =
-    getBooleanConf("spark.auron.enable.expand", defaultValue = true)
+    getBooleanConf(AuronSQLConf.ENABLED_EXPAND.key)
   def enableWindow: Boolean =
-    getBooleanConf("spark.auron.enable.window", defaultValue = true)
+    getBooleanConf(AuronSQLConf.ENABLED_WINDOW.key)
   def enableWindowGroupLimit: Boolean =
-    getBooleanConf("spark.auron.enable.window.group.limit", defaultValue = true)
+    getBooleanConf(AuronSQLConf.ENABLED_WINDOW_GROUP_LIMIT.key)
   def enableGenerate: Boolean =
-    getBooleanConf("spark.auron.enable.generate", defaultValue = true)
+    getBooleanConf(AuronSQLConf.ENABLED_GENERATE.key)
   def enableLocalTableScan: Boolean =
-    getBooleanConf("spark.auron.enable.local.table.scan", defaultValue = true)
+    getBooleanConf(AuronSQLConf.ENABLED_LOCAL_TABLE_SCAN.key)
   def enableDataWriting: Boolean =
-    getBooleanConf("spark.auron.enable.data.writing", defaultValue = false)
+    getBooleanConf(AuronSQLConf.ENABLED_DATA_WRITING.key)
   def enableScanParquet: Boolean =
-    getBooleanConf("spark.auron.enable.scan.parquet", defaultValue = true)
+    getBooleanConf(AuronSQLConf.ENABLED_SCAN_PARQUET.key)
   def enableScanOrc: Boolean =
-    getBooleanConf("spark.auron.enable.scan.orc", defaultValue = true)
+    getBooleanConf(AuronSQLConf.ENABLED_SCAN_ORC.key)
 
   private val extConvertProviders = ServiceLoader.load(classOf[AuronConvertProvider]).asScala
   def extConvertSupported(exec: SparkPlan): Boolean = {
@@ -1095,6 +1093,16 @@ object AuronConverters extends Logging {
         transformedAggExprs.toList,
         transformedGroupingExprs.toList,
         projections.map(kv => Alias(kv._1, kv._2.name)(kv._2.exprId)).toList))
+  }
+
+  def getBooleanConf(key: String): Boolean = {
+    val s = SQLConf.get.getConfString(key)
+    try {
+      s.trim.toBoolean
+    } catch {
+      case _: IllegalArgumentException =>
+        throw new IllegalArgumentException(s"$key should be boolean, but was $s")
+    }
   }
 
   def getBooleanConf(key: String, defaultValue: Boolean): Boolean = {

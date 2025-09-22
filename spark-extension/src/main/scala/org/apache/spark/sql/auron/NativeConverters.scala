@@ -20,12 +20,10 @@ import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 import java.io.ObjectInputStream
 import java.io.ObjectOutputStream
-
 import scala.collection.JavaConverters._
 import scala.collection.mutable
 import scala.math.max
 import scala.math.min
-
 import com.google.protobuf.ByteString
 import org.apache.arrow.c.CDataDictionaryProvider
 import org.apache.arrow.vector.VectorSchemaRoot
@@ -78,17 +76,17 @@ import org.apache.spark.sql.types.StructType
 import org.apache.spark.sql.types.TimestampType
 import org.apache.spark.unsafe.types.UTF8String
 import org.apache.spark.util.Utils
-
 import org.apache.auron.{protobuf => pb}
 import org.apache.auron.protobuf.PhysicalExprNode
+import org.apache.spark.sql.auron.common.AuronSQLConf
 
 object NativeConverters extends Logging {
   def udfJsonEnabled: Boolean =
-    AuronConverters.getBooleanConf("spark.auron.udf.UDFJson.enabled", defaultValue = true)
+    AuronConverters.getBooleanConf(AuronSQLConf.UDF_UDF_JSON_ENABLED.key)
   def udfBrickHouseEnabled: Boolean =
-    AuronConverters.getBooleanConf("spark.auron.udf.brickhouse.enabled", defaultValue = true)
+    AuronConverters.getBooleanConf(AuronSQLConf.UDF_BRICK_HOUSE_ENABLED.key)
   def decimalArithOpEnabled: Boolean =
-    AuronConverters.getBooleanConf("spark.auron.decimal.arithOp.enabled", defaultValue = false)
+    AuronConverters.getBooleanConf(AuronSQLConf.DECIMAL_ARITH_OP_ENABLED.key)
 
   def scalarTypeSupported(dataType: DataType): Boolean = {
     dataType match {
