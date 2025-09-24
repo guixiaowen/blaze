@@ -1,3 +1,19 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package org.apache.spark.sql.auron.common
 
 import org.apache.spark.sql.internal.SQLConf
@@ -19,13 +35,12 @@ object AuronSQLConf extends SQLConf {
 
   val DECIMAL_ARITH_OP_ENABLED =
     buildConf("spark.auron.decimal.arithOp.enabled")
-      .doc("")
       .booleanConf
       .createWithDefault(false)
 
   val ENABLED_SCAN =
     buildConf("spark.auron.enable.scan")
-      .doc("Enable/disable auron engine.")
+      .doc("Enable/disable auron engine for scan.")
       .booleanConf
       .createWithDefault(true)
 
