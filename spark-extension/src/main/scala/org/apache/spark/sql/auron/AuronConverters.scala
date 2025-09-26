@@ -26,7 +26,7 @@ import org.apache.commons.lang3.reflect.MethodUtils
 import org.apache.hadoop.hive.ql.io.parquet.MapredParquetOutputFormat
 import org.apache.spark.Partition
 import org.apache.spark.broadcast.Broadcast
-import org.apache.spark.internal.Logging
+import org.apache.spark.internal.{config, Logging}
 import org.apache.spark.sql.auron.AuronConvertStrategy.childOrderingRequiredTag
 import org.apache.spark.sql.auron.AuronConvertStrategy.convertibleTag
 import org.apache.spark.sql.auron.AuronConvertStrategy.convertStrategyTag
@@ -144,6 +144,13 @@ object AuronConverters extends Logging {
     extConvertProviders.exists(_.isSupported(exec))
   }
 
+  def enableExchange(): Boolean = {
+    val shuffleMangerName = SQLConf.get.getConfString(config.SHUFFLE_MANAGER.key)
+    !shuffleMangerName.isEmpty && (shuffleMangerName.contains(
+      "AuronShuffleManager") || shuffleMangerName.contains(
+      "AuronUniffleShuffleManager") || shuffleMangerName.contains("AuronCelebornShuffleManager"))
+  }
+
   // format: off
   // scalafix:off
   // necessary imports for cross spark versions build
@@ -177,8 +184,9 @@ object AuronConverters extends Logging {
 
   def convertSparkPlan(exec: SparkPlan): SparkPlan = {
     exec match {
-      case e: ShuffleExchangeExec => tryConvert(e, convertShuffleExchangeExec)
-      case e: BroadcastExchangeExec => tryConvert(e, convertBroadcastExchangeExec)
+      case e: ShuffleExchangeExec if enableExchange => tryConvert(e, convertShuffleExchangeExec)
+      case e: BroadcastExchangeExec =>
+        tryConvert(e, convertBroadcastExchangeExec)
       case e: FileSourceScanExec if enableScan => // scan
         tryConvert(e, convertFileSourceScanExec)
       case e: ProjectExec if enableProject => // project
