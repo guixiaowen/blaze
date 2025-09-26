@@ -78,7 +78,6 @@ public class ConfigOptions {
 
         /**
          * Creates a new OptionBuilder.
-         *
          * @param key The key for the config option
          */
         OptionBuilder(String key) {
