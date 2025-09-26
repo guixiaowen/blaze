@@ -33,7 +33,6 @@ public class ConfigOptionTest {
         Assert.assertEquals(true, booleanOption.defaultValue());
     }
 
-
     @Test
     public void testConfigOptionAddDesc() {
         ConfigOption<String> keyOption = ConfigOptions.key("key")
