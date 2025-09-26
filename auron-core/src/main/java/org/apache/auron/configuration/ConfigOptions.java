@@ -93,7 +93,6 @@ public class ConfigOptions {
             return new OptionBuilder(key, description);
         }
 
-
         /** Defines that the value of the option should be of {@link Boolean} type. */
         public TypedConfigOptionBuilder<Boolean> booleanType() {
             return new TypedConfigOptionBuilder<>(key, Boolean.class, description);
