@@ -19,10 +19,6 @@ package org.apache.spark.sql.auron
 import org.apache.spark.sql.execution.adaptive.AdaptiveSparkPlanHelper
 
 class SparkAuronConfigurationSuite
-  extends org.apache.spark.sql.QueryTest
-  with BaseAuronSQLSuite
-  with AdaptiveSparkPlanHelper {
-
-
-
-}
+    extends org.apache.spark.sql.QueryTest
+    with BaseAuronSQLSuite
+    with AdaptiveSparkPlanHelper {}
