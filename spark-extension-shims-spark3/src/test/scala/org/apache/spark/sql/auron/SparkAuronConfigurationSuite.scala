@@ -16,9 +16,15 @@
  */
 package org.apache.spark.sql.auron
 
+import org.apache.spark.sql.auron.configuration.SparkAuronConfiguration
 import org.apache.spark.sql.execution.adaptive.AdaptiveSparkPlanHelper
 
 class SparkAuronConfigurationSuite
     extends org.apache.spark.sql.QueryTest
     with BaseAuronSQLSuite
-    with AdaptiveSparkPlanHelper {}
+    with AdaptiveSparkPlanHelper {
+
+  test("spark auron configuration") {
+    assert(SparkAuronConfiguration.get.enableScan, true)
+  }
+}
