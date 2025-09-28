@@ -33,6 +33,7 @@ import org.apache.arrow.vector.ipc.ArrowStreamWriter
 import org.apache.commons.lang3.reflect.FieldUtils
 import org.apache.commons.lang3.reflect.MethodUtils
 import org.apache.spark.internal.Logging
+import org.apache.spark.sql.auron.configuration.SparkAuronConfiguration
 import org.apache.spark.sql.auron.util.Using
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.catalyst.expressions._
@@ -83,12 +84,6 @@ import org.apache.auron.{protobuf => pb}
 import org.apache.auron.protobuf.PhysicalExprNode
 
 object NativeConverters extends Logging {
-  def udfJsonEnabled: Boolean =
-    AuronConverters.getBooleanConf("spark.auron.udf.UDFJson.enabled", defaultValue = true)
-  def udfBrickHouseEnabled: Boolean =
-    AuronConverters.getBooleanConf("spark.auron.udf.brickhouse.enabled", defaultValue = true)
-  def decimalArithOpEnabled: Boolean =
-    AuronConverters.getBooleanConf("spark.auron.decimal.arithOp.enabled", defaultValue = false)
 
   def scalarTypeSupported(dataType: DataType): Boolean = {
     dataType match {
@@ -529,7 +524,9 @@ object NativeConverters extends Logging {
       case GreaterThanOrEqual(lhs, rhs) => buildBinaryExprNode(lhs, rhs, "GtEq")
       case LessThanOrEqual(lhs, rhs) => buildBinaryExprNode(lhs, rhs, "LtEq")
 
-      case e: Add if !e.dataType.isInstanceOf[DecimalType] || decimalArithOpEnabled =>
+      case e: Add
+          if !e.dataType
+            .isInstanceOf[DecimalType] || SparkAuronConfiguration.get.enableDecimalArithOp =>
         val lhs = e.left
         val rhs = e.right
         if (e.dataType.isInstanceOf[DecimalType]) {
@@ -568,7 +565,9 @@ object NativeConverters extends Logging {
           buildBinaryExprNode(lhs, rhs, "Plus")
         }
 
-      case e: Subtract if !e.dataType.isInstanceOf[DecimalType] || decimalArithOpEnabled =>
+      case e: Subtract
+          if !e.dataType
+            .isInstanceOf[DecimalType] || SparkAuronConfiguration.get.enableDecimalArithOp =>
         val lhs = e.left
         val rhs = e.right
         if (e.dataType.isInstanceOf[DecimalType]) {
@@ -608,7 +607,9 @@ object NativeConverters extends Logging {
           buildBinaryExprNode(lhs, rhs, "Minus")
         }
 
-      case e: Multiply if !e.dataType.isInstanceOf[DecimalType] || decimalArithOpEnabled =>
+      case e: Multiply
+          if !e.dataType
+            .isInstanceOf[DecimalType] || SparkAuronConfiguration.get.enableDecimalArithOp =>
         val lhs = e.left
         val rhs = e.right
         if (e.dataType.isInstanceOf[DecimalType]) {
@@ -648,7 +649,9 @@ object NativeConverters extends Logging {
           buildBinaryExprNode(lhs, rhs, "Multiply")
         }
 
-      case e: Divide if !e.dataType.isInstanceOf[DecimalType] || decimalArithOpEnabled =>
+      case e: Divide
+          if !e.dataType
+            .isInstanceOf[DecimalType] || SparkAuronConfiguration.get.enableDecimalArithOp =>
         val lhs = e.left
         val rhs = e.right
         if (e.dataType.isInstanceOf[DecimalType]) {
@@ -961,11 +964,11 @@ object NativeConverters extends Logging {
         pb.PhysicalExprNode.newBuilder().setCase(caseExpr).build()
 
       // expressions for DecimalPrecision rule
-      case UnscaledValue(_1) if decimalArithOpEnabled =>
+      case UnscaledValue(_1) if SparkAuronConfiguration.get.enableDecimalArithOp =>
         val args = _1 :: Nil
         buildExtScalarFunction("UnscaledValue", args, LongType)
 
-      case e: MakeDecimal if decimalArithOpEnabled =>
+      case e: MakeDecimal if SparkAuronConfiguration.get.enableDecimalArithOp =>
         val precision = e.precision
         val scale = e.scale
         val args =
@@ -973,7 +976,7 @@ object NativeConverters extends Logging {
             .apply(precision, IntegerType) :: Literal.apply(scale, IntegerType) :: Nil
         buildExtScalarFunction("MakeDecimal", args, DecimalType(precision, scale))
 
-      case e: CheckOverflow if decimalArithOpEnabled =>
+      case e: CheckOverflow if SparkAuronConfiguration.get.enableDecimalArithOp =>
         val precision = e.dataType.precision
         val scale = e.dataType.scale
         val args =
@@ -1040,7 +1043,7 @@ object NativeConverters extends Logging {
 
       // hive UDFJson
       case e
-          if udfJsonEnabled && (
+          if SparkAuronConfiguration.get.enableUdfJson && (
             e.isInstanceOf[GetJsonObject]
               || getFunctionClassName(e).contains("org.apache.hadoop.hive.ql.udf.UDFJson")
           )
@@ -1060,7 +1063,7 @@ object NativeConverters extends Logging {
       // hive UDF brickhouse.array_union
       case e
           if getFunctionClassName(e).contains("brickhouse.udf.collect.ArrayUnionUDF")
-            && udfBrickHouseEnabled =>
+            && SparkAuronConfiguration.get.enableUdfBrickHouse =>
         buildExtScalarFunction("BrickhouseArrayUnion", e.children, e.dataType)
 
       case e =>
@@ -1130,7 +1133,7 @@ object NativeConverters extends Logging {
           if HiveUDFUtil
             .getFunctionClassName(udaf)
             .contains("brickhouse.udf.collect.CollectUDAF")
-            && udfBrickHouseEnabled
+            && SparkAuronConfiguration.get.enableUdfBrickHouse
             && udaf.children.size == 1
             && udaf.children.head.dataType.isInstanceOf[ArrayType] =>
         aggBuilder.setAggFunction(pb.AggFunction.BRICKHOUSE_COLLECT)
@@ -1139,7 +1142,7 @@ object NativeConverters extends Logging {
           if HiveUDFUtil
             .getFunctionClassName(udaf)
             .contains("brickhouse.udf.collect.CombineUniqueUDAF")
-            && udfBrickHouseEnabled =>
+            && SparkAuronConfiguration.get.enableUdfBrickHouse =>
         aggBuilder.setAggFunction(pb.AggFunction.BRICKHOUSE_COMBINE_UNIQUE)
         aggBuilder.addChildren(convertExpr(udaf.children.head))
 

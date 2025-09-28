@@ -901,8 +901,9 @@ class ShimsImpl extends Shims with Logging {
       isPruningExpr: Boolean,
       fallback: Expression => pb.PhysicalExprNode): Option[pb.PhysicalExprNode] = {
     import org.apache.spark.sql.catalyst.expressions.PromotePrecision
+    import org.apache.spark.sql.auron.configuration.SparkAuronConfiguration
     e match {
-      case PromotePrecision(_1) if NativeConverters.decimalArithOpEnabled =>
+      case PromotePrecision(_1) if SparkAuronConfiguration.get.enableDecimalArithOp =>
         Some(NativeConverters.convertExprWithFallback(_1, isPruningExpr, fallback))
       case _ => None
     }

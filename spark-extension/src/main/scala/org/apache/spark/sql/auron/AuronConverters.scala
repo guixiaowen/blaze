@@ -34,6 +34,7 @@ import org.apache.spark.sql.auron.AuronConvertStrategy.convertToNonNativeTag
 import org.apache.spark.sql.auron.AuronConvertStrategy.isNeverConvert
 import org.apache.spark.sql.auron.AuronConvertStrategy.joinSmallerSideTag
 import org.apache.spark.sql.auron.NativeConverters.{roundRobinTypeSupported, scalarTypeSupported, StubExpr}
+import org.apache.spark.sql.auron.configuration.SparkAuronConfiguration
 import org.apache.spark.sql.auron.util.AuronLogUtils.logDebugPlanConversion
 import org.apache.spark.sql.catalyst.expressions.AggregateWindowFunction
 import org.apache.spark.sql.catalyst.expressions.Alias
@@ -96,48 +97,6 @@ import org.apache.auron.protobuf.PhysicalPlanNode
 import org.apache.auron.sparkver
 
 object AuronConverters extends Logging {
-  def enableScan: Boolean =
-    getBooleanConf("spark.auron.enable.scan", defaultValue = true)
-  def enableProject: Boolean =
-    getBooleanConf("spark.auron.enable.project", defaultValue = true)
-  def enableFilter: Boolean =
-    getBooleanConf("spark.auron.enable.filter", defaultValue = true)
-  def enableSort: Boolean =
-    getBooleanConf("spark.auron.enable.sort", defaultValue = true)
-  def enableUnion: Boolean =
-    getBooleanConf("spark.auron.enable.union", defaultValue = true)
-  def enableSmj: Boolean =
-    getBooleanConf("spark.auron.enable.smj", defaultValue = true)
-  def enableShj: Boolean =
-    getBooleanConf("spark.auron.enable.shj", defaultValue = true)
-  def enableBhj: Boolean =
-    getBooleanConf("spark.auron.enable.bhj", defaultValue = true)
-  def enableBnlj: Boolean =
-    getBooleanConf("spark.auron.enable.bnlj", defaultValue = true)
-  def enableLocalLimit: Boolean =
-    getBooleanConf("spark.auron.enable.local.limit", defaultValue = true)
-  def enableGlobalLimit: Boolean =
-    getBooleanConf("spark.auron.enable.global.limit", defaultValue = true)
-  def enableTakeOrderedAndProject: Boolean =
-    getBooleanConf("spark.auron.enable.take.ordered.and.project", defaultValue = true)
-  def enableAggr: Boolean =
-    getBooleanConf("spark.auron.enable.aggr", defaultValue = true)
-  def enableExpand: Boolean =
-    getBooleanConf("spark.auron.enable.expand", defaultValue = true)
-  def enableWindow: Boolean =
-    getBooleanConf("spark.auron.enable.window", defaultValue = true)
-  def enableWindowGroupLimit: Boolean =
-    getBooleanConf("spark.auron.enable.window.group.limit", defaultValue = true)
-  def enableGenerate: Boolean =
-    getBooleanConf("spark.auron.enable.generate", defaultValue = true)
-  def enableLocalTableScan: Boolean =
-    getBooleanConf("spark.auron.enable.local.table.scan", defaultValue = true)
-  def enableDataWriting: Boolean =
-    getBooleanConf("spark.auron.enable.data.writing", defaultValue = false)
-  def enableScanParquet: Boolean =
-    getBooleanConf("spark.auron.enable.scan.parquet", defaultValue = true)
-  def enableScanOrc: Boolean =
-    getBooleanConf("spark.auron.enable.scan.orc", defaultValue = true)
 
   private val extConvertProviders = ServiceLoader.load(classOf[AuronConvertProvider]).asScala
   def extConvertSupported(exec: SparkPlan): Boolean = {
@@ -147,7 +106,6 @@ object AuronConverters extends Logging {
   // format: off
   // scalafix:off
   // necessary imports for cross spark versions build
-  import org.apache.spark.sql.catalyst.plans._
   import org.apache.spark.sql.catalyst.optimizer._
   // scalafix:on
   // format: on
@@ -179,32 +137,36 @@ object AuronConverters extends Logging {
     exec match {
       case e: ShuffleExchangeExec => tryConvert(e, convertShuffleExchangeExec)
       case e: BroadcastExchangeExec => tryConvert(e, convertBroadcastExchangeExec)
-      case e: FileSourceScanExec if enableScan => // scan
+      case e: FileSourceScanExec if SparkAuronConfiguration.get.enableScan => // scan
         tryConvert(e, convertFileSourceScanExec)
-      case e: ProjectExec if enableProject => // project
+      case e: ProjectExec if SparkAuronConfiguration.get.enableProject => // project
         tryConvert(e, convertProjectExec)
-      case e: FilterExec if enableFilter => // filter
+      case e: FilterExec if SparkAuronConfiguration.get.enableFilter => // filter
         tryConvert(e, convertFilterExec)
-      case e: SortExec if enableSort => // sort
+      case e: SortExec if SparkAuronConfiguration.get.enableSort => // sort
         tryConvert(e, convertSortExec)
-      case e: UnionExec if enableUnion => // union
+      case e: UnionExec if SparkAuronConfiguration.get.enableUnion => // union
         tryConvert(e, convertUnionExec)
-      case e: SortMergeJoinExec if enableSmj => // sort merge join
+      case e: SortMergeJoinExec if SparkAuronConfiguration.get.enableSmj => // sort merge join
         tryConvert(e, convertSortMergeJoinExec)
-      case e: ShuffledHashJoinExec if enableShj => // shuffled hash join
+      case e: ShuffledHashJoinExec
+          if SparkAuronConfiguration.get.enableShj => // shuffled hash join
         tryConvert(e, convertShuffledHashJoinExec)
-      case e: BroadcastHashJoinExec if enableBhj => // broadcast hash join
+      case e: BroadcastHashJoinExec
+          if SparkAuronConfiguration.get.enableBhj => // broadcast hash join
         tryConvert(e, convertBroadcastHashJoinExec)
-      case e: BroadcastNestedLoopJoinExec if enableBnlj => // broadcast nested loop join
+      case e: BroadcastNestedLoopJoinExec
+          if SparkAuronConfiguration.get.enableBnlj => // broadcast nested loop join
         tryConvert(e, convertBroadcastNestedLoopJoinExec)
-      case e: LocalLimitExec if enableLocalLimit => // local limit
+      case e: LocalLimitExec if SparkAuronConfiguration.get.enableLocalLimit => // local limit
         tryConvert(e, convertLocalLimitExec)
-      case e: GlobalLimitExec if enableGlobalLimit => // global limit
+      case e: GlobalLimitExec if SparkAuronConfiguration.get.enableGlobalLimit => // global limit
         tryConvert(e, convertGlobalLimitExec)
-      case e: TakeOrderedAndProjectExec if enableTakeOrderedAndProject =>
+      case e: TakeOrderedAndProjectExec
+          if SparkAuronConfiguration.get.enableTakeOrderedAndProject =>
         tryConvert(e, convertTakeOrderedAndProjectExec)
 
-      case e: HashAggregateExec if enableAggr => // hash aggregate
+      case e: HashAggregateExec if SparkAuronConfiguration.get.enableAggr => // hash aggregate
         val convertedAgg = tryConvert(e, convertHashAggregateExec)
         if (!e.getTagValue(convertibleTag).contains(true)) {
           if (e.requiredChildDistributionExpressions.isDefined) {
@@ -215,7 +177,8 @@ object AuronConverters extends Logging {
         }
         convertedAgg
 
-      case e: ObjectHashAggregateExec if enableAggr => // object hash aggregate
+      case e: ObjectHashAggregateExec
+          if SparkAuronConfiguration.get.enableAggr => // object hash aggregate
         val convertedAgg = tryConvert(e, convertObjectHashAggregateExec)
         if (!e.getTagValue(convertibleTag).contains(true)) {
           if (e.requiredChildDistributionExpressions.isDefined) {
@@ -226,7 +189,7 @@ object AuronConverters extends Logging {
         }
         convertedAgg
 
-      case e: SortAggregateExec if enableAggr => // sort aggregate
+      case e: SortAggregateExec if SparkAuronConfiguration.get.enableAggr => // sort aggregate
         val convertedAgg = tryConvert(e, convertSortAggregateExec)
         if (!e.getTagValue(convertibleTag).contains(true)) {
           if (e.requiredChildDistributionExpressions.isDefined) {
@@ -237,18 +200,20 @@ object AuronConverters extends Logging {
         }
         convertedAgg
 
-      case e: ExpandExec if enableExpand => // expand
+      case e: ExpandExec if SparkAuronConfiguration.get.enableExpand => // expand
         tryConvert(e, convertExpandExec)
-      case e: WindowExec if enableWindow => // window
+      case e: WindowExec if SparkAuronConfiguration.get.enableWindow => // window
         tryConvert(e, convertWindowExec)
       case e: UnaryExecNode
-          if e.getClass.getSimpleName == "WindowGroupLimitExec" && enableWindowGroupLimit => // window group limit
+          if e.getClass.getSimpleName == "WindowGroupLimitExec" && SparkAuronConfiguration.get.enableWindowGroupLimit => // window group limit
         tryConvert(e, convertWindowGroupLimitExec)
-      case e: GenerateExec if enableGenerate => // generate
+      case e: GenerateExec if SparkAuronConfiguration.get.enableGenerate => // generate
         tryConvert(e, convertGenerateExec)
-      case e: LocalTableScanExec if enableLocalTableScan => // local table scan
+      case e: LocalTableScanExec
+          if SparkAuronConfiguration.get.enableLocalTableScan => // local table scan
         tryConvert(e, convertLocalTableScanExec)
-      case e: DataWritingCommandExec if enableDataWriting => // data writing
+      case e: DataWritingCommandExec
+          if SparkAuronConfiguration.get.enableDataWriting => // data writing
         tryConvert(e, convertDataWritingCommandExec)
 
       case exec: ForceNativeExecutionWrapperBase => exec
@@ -372,10 +337,10 @@ object AuronConverters extends Logging {
         "tableIdentifier" -> tableIdentifier))
     relation.fileFormat match {
       case p if p.getClass.getName.endsWith("ParquetFileFormat") =>
-        assert(enableScanParquet)
+        assert(SparkAuronConfiguration.get.enableScanParquet)
         addRenameColumnsExec(Shims.get.createNativeParquetScanExec(exec))
       case p if p.getClass.getName.endsWith("OrcFileFormat") =>
-        assert(enableScanOrc)
+        assert(SparkAuronConfiguration.get.enableScanOrc)
         addRenameColumnsExec(Shims.get.createNativeOrcScanExec(exec))
       case p =>
         throw new NotImplementedError(

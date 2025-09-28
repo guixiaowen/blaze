@@ -27,6 +27,7 @@ import org.apache.spark.sql.auron.NativeConverters
 import org.apache.spark.sql.auron.NativeHelper
 import org.apache.spark.sql.auron.NativeRDD
 import org.apache.spark.sql.auron.NativeSupports
+import org.apache.spark.sql.auron.configuration.SparkAuronConfiguration
 import org.apache.spark.sql.catalyst.expressions.Attribute
 import org.apache.spark.sql.catalyst.expressions.AttributeReference
 import org.apache.spark.sql.catalyst.expressions.BoundReference
@@ -86,7 +87,8 @@ abstract class NativeGenerateBase(
         .addChild(NativeConverters.convertExpr(child))
         .build()
     case JsonTuple(children)
-        if NativeConverters.udfJsonEnabled && children.drop(1).forall(_.isInstanceOf[Literal]) =>
+        if SparkAuronConfiguration.get.enableUdfJson
+          && children.drop(1).forall(_.isInstanceOf[Literal]) =>
       pb.Generator
         .newBuilder()
         .setFunc(pb.GenerateFunction.JsonTuple)
