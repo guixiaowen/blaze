@@ -138,6 +138,8 @@ object AuronConverters extends Logging {
     getBooleanConf("spark.auron.enable.scan.parquet", defaultValue = true)
   def enableScanOrc: Boolean =
     getBooleanConf("spark.auron.enable.scan.orc", defaultValue = true)
+  def enableShuffleExechange: Boolean =
+    getBooleanConf("spark.auron.enable.shuffleexchange", defaultValue = true)
 
   private val extConvertProviders = ServiceLoader.load(classOf[AuronConvertProvider]).asScala
   def extConvertSupported(exec: SparkPlan): Boolean = {
@@ -146,7 +148,7 @@ object AuronConverters extends Logging {
 
   def enableExchange(): Boolean = {
     val shuffleMangerName = SQLConf.get.getConfString(config.SHUFFLE_MANAGER.key)
-    !shuffleMangerName.isEmpty && (shuffleMangerName.contains(
+    enableShuffleExechange && !shuffleMangerName.isEmpty && (shuffleMangerName.contains(
       "AuronShuffleManager") || shuffleMangerName.contains(
       "AuronUniffleShuffleManager") || shuffleMangerName.contains("AuronCelebornShuffleManager"))
   }
