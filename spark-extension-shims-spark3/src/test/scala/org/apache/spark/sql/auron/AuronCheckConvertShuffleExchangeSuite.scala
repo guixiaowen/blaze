@@ -52,8 +52,6 @@ class AuronCheckConvertShuffleExchangeSuite
 
       val shuffleExchangeExec =
         executePlan.queryExecution.executedPlan
-          .asInstanceOf[AdaptiveSparkPlanExec]
-          .initialPlan
           .collectFirst { case shuffleExchangeExec: ShuffleExchangeExec =>
             shuffleExchangeExec
           }
@@ -84,8 +82,6 @@ class AuronCheckConvertShuffleExchangeSuite
 
       val shuffleExchangeExec =
         executePlan.queryExecution.executedPlan
-          .asInstanceOf[AdaptiveSparkPlanExec]
-          .initialPlan
           .collectFirst { case shuffleExchangeExec: ShuffleExchangeExec =>
             shuffleExchangeExec
           }
