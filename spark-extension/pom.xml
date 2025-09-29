@@ -29,7 +29,6 @@
   <packaging>jar</packaging>
 
   <dependencies>
-
     <dependency>
       <groupId>org.apache.auron</groupId>
       <artifactId>hadoop-shim_${scalaVersion}</artifactId>
