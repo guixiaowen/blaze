@@ -54,7 +54,7 @@ class AuronCheckConvertBroadcastExchangeSuite
 
     val plan = executePlan.queryExecution.executedPlan.asInstanceOf[AdaptiveSparkPlanExec]
     val broadcastExchangeExec =
-      plan.initialPlan
+      plan.executedPlan
         .collectFirst { case broadcastExchangeExec: BroadcastExchangeExec =>
           broadcastExchangeExec
         }
@@ -90,7 +90,7 @@ class AuronCheckConvertBroadcastExchangeSuite
 
     val plan = executePlan.queryExecution.executedPlan.asInstanceOf[AdaptiveSparkPlanExec]
     val broadcastExchangeExec =
-      plan.initialPlan
+      plan.executedPlan
         .collectFirst { case broadcastExchangeExec: BroadcastExchangeExec =>
           broadcastExchangeExec
         }
@@ -127,7 +127,7 @@ class AuronCheckConvertBroadcastExchangeSuite
 
     val plan = executePlan.queryExecution.executedPlan.asInstanceOf[AdaptiveSparkPlanExec]
     val broadcastExchangeExec =
-      plan.initialPlan
+      plan.executedPlan
         .collectFirst { case broadcastExchangeExec: BroadcastExchangeExec =>
           broadcastExchangeExec
         }
@@ -164,7 +164,7 @@ class AuronCheckConvertBroadcastExchangeSuite
 
     val plan = executePlan.queryExecution.executedPlan.asInstanceOf[AdaptiveSparkPlanExec]
     val broadcastExchangeExec =
-      plan.initialPlan
+      plan.executedPlan
         .collectFirst { case broadcastExchangeExec: BroadcastExchangeExec =>
           broadcastExchangeExec
         }
