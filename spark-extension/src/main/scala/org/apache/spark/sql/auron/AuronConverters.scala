@@ -807,7 +807,7 @@ object AuronConverters extends Logging {
 
     val isFinal = exec.requiredChildDistributionExpressions.isDefined &&
       exec.aggregateExpressions.forall(_.mode == Final)
-    if (isFinal) { // wraps with a projection to handle resutExpressions
+    if (isFinal) { // wraps with a projection to handle resultExpressions
       try {
         return Shims.get.createNativeProjectExec(exec.resultExpressions, nativeAggr)
       } catch {
