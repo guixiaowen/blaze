@@ -17,7 +17,6 @@
 package org.apache.spark.sql.auron
 
 import org.apache.spark.sql.{QueryTest, Row, SparkSession}
-import org.apache.spark.sql.execution.adaptive.AdaptiveSparkPlanExec
 import org.apache.spark.sql.execution.auron.plan.NativeShuffleExchangeExec
 import org.apache.spark.sql.execution.exchange.ShuffleExchangeExec
 import org.apache.spark.sql.test.SharedSparkSession
