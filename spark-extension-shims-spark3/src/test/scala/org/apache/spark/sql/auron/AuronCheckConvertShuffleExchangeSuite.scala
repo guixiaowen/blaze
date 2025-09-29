@@ -25,7 +25,8 @@ import org.apache.spark.sql.test.SharedSparkSession
 class AuronCheckConvertShuffleExchangeSuite
     extends QueryTest
     with SharedSparkSession
-    with AuronSQLTestHelper {
+    with AuronSQLTestHelper
+    with org.apache.spark.sql.execution.adaptive.AdaptiveSparkPlanHelper {
 
   test("test set auron shuffle manager convert to native shuffle exchange") {
     withTable("test_shuffle") {
