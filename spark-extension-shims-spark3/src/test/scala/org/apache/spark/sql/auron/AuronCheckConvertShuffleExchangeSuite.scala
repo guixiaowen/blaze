@@ -27,13 +27,14 @@ class AuronCheckConvertShuffleExchangeSuite
     with AuronSQLTestHelper
     with org.apache.spark.sql.execution.adaptive.AdaptiveSparkPlanHelper {
 
-  test("test set auron shuffle manager convert to native shuffle exchange") {
+  test(
+    "test set auron shuffle manager convert to native shuffle exchange where set spark.auron.enable is true") {
     withTable("test_shuffle") {
       val spark = SparkSession
         .builder()
         .master("local[2]")
         .appName("checkConvertToNativeShuffleManger")
-        .config("spark.sql.shuffle.partitions", "4") // 自定义 SQL 参数
+        .config("spark.sql.shuffle.partitions", "4")
         .config("spark.sql.autoBroadcastJoinThreshold", -1)
         .config("spark.sql.extensions", "org.apache.spark.sql.auron.AuronSparkSessionExtension")
         .config(
@@ -60,13 +61,14 @@ class AuronCheckConvertShuffleExchangeSuite
     }
   }
 
-  test("test set non auron shuffle manager do not convert to native shuffle exchange") {
+  test(
+    "test set non auron shuffle manager do not convert to native shuffle exchange where set spark.auron.enable is true") {
     withTable("test_shuffle") {
       val spark = SparkSession
         .builder()
         .master("local[2]")
         .appName("checkConvertToNativeShuffleManger")
-        .config("spark.sql.shuffle.partitions", "4") // 自定义 SQL 参数
+        .config("spark.sql.shuffle.partitions", "4")
         .config("spark.sql.autoBroadcastJoinThreshold", -1)
         .config("spark.shuffle.manager", "org.apache.spark.shuffle.sort.SortShuffleManager")
         .config("spark.sql.extensions", "org.apache.spark.sql.auron.AuronSparkSessionExtension")
