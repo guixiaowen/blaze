@@ -22,7 +22,10 @@ import org.apache.spark.sql.execution.auron.plan.NativeShuffleExchangeExec
 import org.apache.spark.sql.execution.exchange.ShuffleExchangeExec
 import org.apache.spark.sql.test.SharedSparkSession
 
-class AuronCheckConvertShuffleExchangeSuite extends QueryTest with SharedSparkSession with AuronSQLTestHelper {
+class AuronCheckConvertShuffleExchangeSuite
+    extends QueryTest
+    with SharedSparkSession
+    with AuronSQLTestHelper {
 
   test("test set auron shuffle manager convert to native shuffle exchange") {
     withTable("test_shuffle") {
