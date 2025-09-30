@@ -110,7 +110,7 @@ class AuronCheckConvertBroadcastExchangeSuite
         "spark.shuffle.manager",
         "org.apache.spark.sql.execution.auron.shuffle.AuronShuffleManager")
       .config("spark.memory.offHeap.enabled", "false")
-      .config("spark.auron.enable.broadcastexchange", "false")
+      .config("spark.auron.enable.broadcastExchange", "false")
       .config("spark.auron.enable", "true")
       .getOrCreate()
 
@@ -145,7 +145,7 @@ class AuronCheckConvertBroadcastExchangeSuite
         "spark.shuffle.manager",
         "org.apache.spark.sql.execution.auron.shuffle.AuronShuffleManager")
       .config("spark.memory.offHeap.enabled", "false")
-      .config("spark.auron.enable.broadcastexchange", "false")
+      .config("spark.auron.enable.broadcastExchange", "false")
       .config("spark.auron.enable", "true")
       .getOrCreate()
 

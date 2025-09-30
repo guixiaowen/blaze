@@ -139,7 +139,7 @@ object AuronConverters extends Logging {
   def enableScanOrc: Boolean =
     getBooleanConf("spark.auron.enable.scan.orc", defaultValue = true)
   def enableBroadcastExchange: Boolean =
-    getBooleanConf("spark.auron.enable.broadcastexchange", defaultValue = true)
+    getBooleanConf("spark.auron.enable.broadcastExchange", defaultValue = true)
 
   private val extConvertProviders = ServiceLoader.load(classOf[AuronConvertProvider]).asScala
   def extConvertSupported(exec: SparkPlan): Boolean = {
