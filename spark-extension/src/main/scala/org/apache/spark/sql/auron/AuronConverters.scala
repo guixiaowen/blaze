@@ -120,8 +120,12 @@ object AuronConverters extends Logging {
     getBooleanConf("spark.auron.enable.global.limit", defaultValue = true)
   def enableTakeOrderedAndProject: Boolean =
     getBooleanConf("spark.auron.enable.take.ordered.and.project", defaultValue = true)
-  def enableAggr: Boolean =
-    getBooleanConf("spark.auron.enable.aggr", defaultValue = true)
+  def enableHashAggr: Boolean =
+    getBooleanConf("spark.auron.enable.hash.aggr", defaultValue = true)
+  def enableSortAggr: Boolean =
+    getBooleanConf("spark.auron.enable.sort.aggr", defaultValue = true)
+  def enableObjectHashAggr: Boolean =
+    getBooleanConf("spark.auron.enable.object.hash.aggr", defaultValue = true)
   def enableExpand: Boolean =
     getBooleanConf("spark.auron.enable.expand", defaultValue = true)
   def enableWindow: Boolean =
@@ -204,7 +208,7 @@ object AuronConverters extends Logging {
       case e: TakeOrderedAndProjectExec if enableTakeOrderedAndProject =>
         tryConvert(e, convertTakeOrderedAndProjectExec)
 
-      case e: HashAggregateExec if enableAggr => // hash aggregate
+      case e: HashAggregateExec if enableHashAggr => // hash aggregate
         val convertedAgg = tryConvert(e, convertHashAggregateExec)
         if (!e.getTagValue(convertibleTag).contains(true)) {
           if (e.requiredChildDistributionExpressions.isDefined) {
@@ -215,7 +219,7 @@ object AuronConverters extends Logging {
         }
         convertedAgg
 
-      case e: ObjectHashAggregateExec if enableAggr => // object hash aggregate
+      case e: ObjectHashAggregateExec if enableObjectHashAggr => // object hash aggregate
         val convertedAgg = tryConvert(e, convertObjectHashAggregateExec)
         if (!e.getTagValue(convertibleTag).contains(true)) {
           if (e.requiredChildDistributionExpressions.isDefined) {
@@ -226,7 +230,7 @@ object AuronConverters extends Logging {
         }
         convertedAgg
 
-      case e: SortAggregateExec if enableAggr => // sort aggregate
+      case e: SortAggregateExec if enableSortAggr => // sort aggregate
         val convertedAgg = tryConvert(e, convertSortAggregateExec)
         if (!e.getTagValue(convertibleTag).contains(true)) {
           if (e.requiredChildDistributionExpressions.isDefined) {
