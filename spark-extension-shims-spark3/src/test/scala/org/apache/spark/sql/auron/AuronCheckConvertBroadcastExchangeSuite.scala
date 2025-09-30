@@ -27,13 +27,14 @@ class AuronCheckConvertBroadcastExchangeSuite
     with SharedSparkSession
     with AuronSQLTestHelper
     with org.apache.spark.sql.execution.adaptive.AdaptiveSparkPlanHelper {
+  import testImplicits._
 
   test(
     "test bhj broadcastExchange to native where spark.auron.enable.broadcastexchange is true") {
     val spark = SparkSession
       .builder()
       .master("local[2]")
-      .appName("checkConvertToNativeShuffleManger")
+      .appName("checkConvertToBroadcast")
       .config("spark.sql.shuffle.partitions", "4")
       .config("spark.sql.autoBroadcastJoinThreshold", -1)
       .config("spark.sql.extensions", "org.apache.spark.sql.auron.AuronSparkSessionExtension")
@@ -44,10 +45,8 @@ class AuronCheckConvertBroadcastExchangeSuite
       .config("spark.auron.enable", "true")
       .getOrCreate()
 
-    spark.sql(
-      "create table if not exists broad_cast_table1 using parquet PARTITIONED BY (part) as select 1 as c1, 2 as c2, 'test test' as part")
-    spark.sql(
-      "create table if not exists broad_cast_table2 using parquet PARTITIONED BY (part) as select 1 as c1, 2 as c2, 'test test' as part")
+    Seq((1, 2, "test test")).toDF("c1", "c2", "part").createOrReplaceTempView("t1")
+    Seq((1, 2, "test test")).toDF("c1", "c2", "part").createOrReplaceTempView("t2")
     val executePlan =
       spark.sql(
         "select /*+ broadcast(a)*/ a.c1, a.c2 from broad_cast_table1 a inner join broad_cast_table2 b on a.c1 = b.c1")
@@ -69,7 +68,7 @@ class AuronCheckConvertBroadcastExchangeSuite
     val spark = SparkSession
       .builder()
       .master("local[2]")
-      .appName("checkConvertToNativeShuffleManger")
+      .appName("checkConvertToBroadcast")
       .config("spark.sql.shuffle.partitions", "4")
       .config("spark.sql.autoBroadcastJoinThreshold", -1)
       .config("spark.sql.extensions", "org.apache.spark.sql.auron.AuronSparkSessionExtension")
@@ -80,10 +79,8 @@ class AuronCheckConvertBroadcastExchangeSuite
       .config("spark.auron.enable", "true")
       .getOrCreate()
 
-    spark.sql(
-      "create table if not exists broad_cast_table1 using parquet PARTITIONED BY (part) as select 1 as c1, 2 as c2, 'test test' as part")
-    spark.sql(
-      "create table if not exists broad_cast_table2 using parquet PARTITIONED BY (part) as select 1 as c1, 2 as c2, 'test test' as part")
+    Seq((1, 2, "test test")).toDF("c1", "c2", "part").createOrReplaceTempView("t1")
+    Seq((1, 2, "test test")).toDF("c1", "c2", "part").createOrReplaceTempView("t2")
     val executePlan =
       spark.sql(
         "select /*+ broadcast(a)*/ a.c1, a.c2 from broad_cast_table1 a inner join broad_cast_table2 b ")
@@ -105,7 +102,7 @@ class AuronCheckConvertBroadcastExchangeSuite
     val spark = SparkSession
       .builder()
       .master("local[2]")
-      .appName("checkConvertToNativeShuffleManger")
+      .appName("checkConvertToBroadcast")
       .config("spark.sql.shuffle.partitions", "4")
       .config("spark.sql.autoBroadcastJoinThreshold", -1)
       .config("spark.sql.extensions", "org.apache.spark.sql.auron.AuronSparkSessionExtension")
@@ -117,10 +114,8 @@ class AuronCheckConvertBroadcastExchangeSuite
       .config("spark.auron.enable", "true")
       .getOrCreate()
 
-    spark.sql(
-      "create table if not exists broad_cast_table1 using parquet PARTITIONED BY (part) as select 1 as c1, 2 as c2, 'test test' as part")
-    spark.sql(
-      "create table if not exists broad_cast_table2 using parquet PARTITIONED BY (part) as select 1 as c1, 2 as c2, 'test test' as part")
+    Seq((1, 2, "test test")).toDF("c1", "c2", "part").createOrReplaceTempView("t1")
+    Seq((1, 2, "test test")).toDF("c1", "c2", "part").createOrReplaceTempView("t2")
     val executePlan =
       spark.sql(
         "select /*+ broadcast(a)*/ a.c1, a.c2 from broad_cast_table1 a inner join broad_cast_table2 b on a.c1 = b.c1")
@@ -142,7 +137,7 @@ class AuronCheckConvertBroadcastExchangeSuite
     val spark = SparkSession
       .builder()
       .master("local[2]")
-      .appName("checkConvertToNativeShuffleManger")
+      .appName("checkConvertToBroadcast")
       .config("spark.sql.shuffle.partitions", "4")
       .config("spark.sql.autoBroadcastJoinThreshold", -1)
       .config("spark.sql.extensions", "org.apache.spark.sql.auron.AuronSparkSessionExtension")
@@ -154,10 +149,8 @@ class AuronCheckConvertBroadcastExchangeSuite
       .config("spark.auron.enable", "true")
       .getOrCreate()
 
-    spark.sql(
-      "create table if not exists broad_cast_table1 using parquet PARTITIONED BY (part) as select 1 as c1, 2 as c2, 'test test' as part")
-    spark.sql(
-      "create table if not exists broad_cast_table2 using parquet PARTITIONED BY (part) as select 1 as c1, 2 as c2, 'test test' as part")
+    Seq((1, 2, "test test")).toDF("c1", "c2", "part").createOrReplaceTempView("t1")
+    Seq((1, 2, "test test")).toDF("c1", "c2", "part").createOrReplaceTempView("t2")
     val executePlan =
       spark.sql(
         "select /*+ broadcast(a)*/ a.c1, a.c2 from broad_cast_table1 a inner join broad_cast_table2 b ")
