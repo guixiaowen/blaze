@@ -45,8 +45,8 @@ class AuronCheckConvertBroadcastExchangeSuite
       .config("spark.auron.enable", "true")
       .getOrCreate()
 
-    Seq((1, 2, "test test")).toDF("c1", "c2", "part").createOrReplaceTempView("t1")
-    Seq((1, 2, "test test")).toDF("c1", "c2", "part").createOrReplaceTempView("t2")
+    Seq((1, 2, "test test")).toDF("c1", "c2", "part").createOrReplaceTempView("broad_cast_table1")
+    Seq((1, 2, "test test")).toDF("c1", "c2", "part").createOrReplaceTempView("broad_cast_table2")
     val executePlan =
       spark.sql(
         "select /*+ broadcast(a)*/ a.c1, a.c2 from broad_cast_table1 a inner join broad_cast_table2 b on a.c1 = b.c1")
@@ -79,8 +79,8 @@ class AuronCheckConvertBroadcastExchangeSuite
       .config("spark.auron.enable", "true")
       .getOrCreate()
 
-    Seq((1, 2, "test test")).toDF("c1", "c2", "part").createOrReplaceTempView("t1")
-    Seq((1, 2, "test test")).toDF("c1", "c2", "part").createOrReplaceTempView("t2")
+    Seq((1, 2, "test test")).toDF("c1", "c2", "part").createOrReplaceTempView("broad_cast_table1")
+    Seq((1, 2, "test test")).toDF("c1", "c2", "part").createOrReplaceTempView("broad_cast_table2")
     val executePlan =
       spark.sql(
         "select /*+ broadcast(a)*/ a.c1, a.c2 from broad_cast_table1 a inner join broad_cast_table2 b ")
@@ -114,8 +114,8 @@ class AuronCheckConvertBroadcastExchangeSuite
       .config("spark.auron.enable", "true")
       .getOrCreate()
 
-    Seq((1, 2, "test test")).toDF("c1", "c2", "part").createOrReplaceTempView("t1")
-    Seq((1, 2, "test test")).toDF("c1", "c2", "part").createOrReplaceTempView("t2")
+    Seq((1, 2, "test test")).toDF("c1", "c2", "part").createOrReplaceTempView("broad_cast_table1")
+    Seq((1, 2, "test test")).toDF("c1", "c2", "part").createOrReplaceTempView("broad_cast_table2")
     val executePlan =
       spark.sql(
         "select /*+ broadcast(a)*/ a.c1, a.c2 from broad_cast_table1 a inner join broad_cast_table2 b on a.c1 = b.c1")
@@ -149,8 +149,8 @@ class AuronCheckConvertBroadcastExchangeSuite
       .config("spark.auron.enable", "true")
       .getOrCreate()
 
-    Seq((1, 2, "test test")).toDF("c1", "c2", "part").createOrReplaceTempView("t1")
-    Seq((1, 2, "test test")).toDF("c1", "c2", "part").createOrReplaceTempView("t2")
+    Seq((1, 2, "test test")).toDF("c1", "c2", "part").createOrReplaceTempView("broad_cast_table1")
+    Seq((1, 2, "test test")).toDF("c1", "c2", "part").createOrReplaceTempView("broad_cast_table2")
     val executePlan =
       spark.sql(
         "select /*+ broadcast(a)*/ a.c1, a.c2 from broad_cast_table1 a inner join broad_cast_table2 b ")
