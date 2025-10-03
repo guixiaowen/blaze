@@ -49,23 +49,21 @@ class AuronSparkSessionExtensionSuite extends SparkFunSuite with SQLHelper {
     }
   }
   test("test Optimize preColumnarTransitions with FileSourceScanExec") {
-    val extensions = create { extensions =>
-      extensions.injectColumnar(sparkSession => {
-        AuronColumnarOverrides(sparkSession)
-      })
-    }
+    withTable("file_source_scan") {
+      val extensions = create { extensions =>
+        extensions.injectColumnar(sparkSession => {
+          AuronColumnarOverrides(sparkSession)
+        })
+      }
 
-    withSession(extensions) { session =>
-      withTable(
-        "file_source_scan" +
-          "" +
-          "") {
+      withSession(extensions) { session =>
         session.sql(
           "create table file_source_scan using parquet PARTITIONED BY (part) as select 1 as c1, 2 as c2, 'test test' as part")
         val executedPlan =
           session.sql("select * from file_source_scan").queryExecution.executedPlan
 
         assert(executedPlan.isInstanceOf[NativeParquetScanExec])
+        stop(session)
       }
     }
   }
@@ -88,6 +86,7 @@ class AuronSparkSessionExtensionSuite extends SparkFunSuite with SQLHelper {
       }
 
       assert(!localScan(0).getTagValue(AuronConvertStrategy.convertibleTag).isDefined)
+      stop(session)
     }
 
   }
