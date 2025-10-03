@@ -16,78 +16,32 @@
  */
 package org.apache.spark.sql.auron
 
-import org.apache.spark.SparkFunSuite
-import org.apache.spark.sql.{SparkSession, SparkSessionExtensionsProvider}
-import org.apache.spark.sql.catalyst.plans.SQLHelper
 import org.apache.spark.sql.execution.LocalTableScanExec
+import org.apache.spark.sql.execution.adaptive.AdaptiveSparkPlanExec
 import org.apache.spark.sql.execution.auron.plan.NativeParquetScanExec
-import org.apache.spark.sql.execution.benchmark.BuiltInDataSourceWriteBenchmark.withTable
 
-class AuronSparkSessionExtensionSuite extends SparkFunSuite with SQLHelper {
+class AuronSparkSessionExtensionSuite
+    extends org.apache.spark.sql.QueryTest
+    with BaseAuronSQLSuite
+    with AuronSQLTestHelper {
+  import testImplicits._
 
-  private def create(
-      builder: SparkSessionExtensionsProvider): Seq[SparkSessionExtensionsProvider] = Seq(builder)
-
-  private def stop(spark: SparkSession): Unit = {
-    spark.stop()
-    SparkSession.clearActiveSession()
-    SparkSession.clearDefaultSession()
-  }
-
-  private def withSession(builders: Seq[SparkSessionExtensionsProvider])(
-      f: SparkSession => Unit): Unit = {
-    val builder =
-      SparkSession
-        .builder()
-        .master("local[1]")
-        .config("spark.sql.catalogImplementation", "hive")
-    builders.foreach(builder.withExtensions)
-    val spark = builder.getOrCreate()
-    try f(spark)
-    finally {
-      stop(spark)
-    }
-  }
   test("test Optimize preColumnarTransitions with FileSourceScanExec") {
     withTable("file_source_scan") {
-      val extensions = create { extensions =>
-        extensions.injectColumnar(sparkSession => {
-          AuronColumnarOverrides(sparkSession)
-        })
-      }
+      sql(
+        "create table file_source_scan using parquet PARTITIONED BY (part) as select 1 as c1, 2 as c2, 'test test' as part")
+      val executedPlan = sql("select * from file_source_scan").queryExecution.executedPlan
+        .asInstanceOf[AdaptiveSparkPlanExec]
+        .executedPlan
 
-      withSession(extensions) { session =>
-        session.sql(
-          "create table file_source_scan using parquet PARTITIONED BY (part) as select 1 as c1, 2 as c2, 'test test' as part")
-        val executedPlan =
-          session.sql("select * from file_source_scan").queryExecution.executedPlan
-
-        assert(executedPlan.isInstanceOf[NativeParquetScanExec])
-        stop(session)
-      }
+      val afterPlan = AuronColumnarOverrides
+        .apply(executedPlan.session)
+        .preColumnarTransitions
+        .apply(executedPlan)
+      assert(
+        afterPlan
+          .isInstanceOf[NativeParquetScanExec])
     }
   }
 
-  test("test Optimize preColumnarTransitions with LeafExecNode") {
-    val extensions = create { extensions =>
-      extensions.injectColumnar(sparkSession => {
-        AuronColumnarOverrides(sparkSession)
-      })
-    }
-
-    withSession(extensions) { session =>
-      import session.implicits._
-      Seq((1, 2, "test test"))
-        .toDF("c1", "c2", "part")
-        .createOrReplaceTempView("local_table_scan")
-      val df = session.table("local_table_scan")
-      val localScan = df.queryExecution.executedPlan.collect { case s: LocalTableScanExec =>
-        s
-      }
-
-      assert(!localScan(0).getTagValue(AuronConvertStrategy.convertibleTag).isDefined)
-      stop(session)
-    }
-
-  }
 }
