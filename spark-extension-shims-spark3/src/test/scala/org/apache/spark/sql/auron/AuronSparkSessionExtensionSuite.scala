@@ -19,7 +19,7 @@ package org.apache.spark.sql.auron
 import org.apache.spark.SparkFunSuite
 import org.apache.spark.sql.{SparkSession, SparkSessionExtensionsProvider}
 import org.apache.spark.sql.catalyst.plans.SQLHelper
-import org.apache.spark.sql.execution.{FileSourceScanExec, LocalTableScanExec}
+import org.apache.spark.sql.execution.LocalTableScanExec
 import org.apache.spark.sql.execution.auron.plan.NativeParquetScanExec
 import org.apache.spark.sql.execution.benchmark.BuiltInDataSourceWriteBenchmark.withTable
 
