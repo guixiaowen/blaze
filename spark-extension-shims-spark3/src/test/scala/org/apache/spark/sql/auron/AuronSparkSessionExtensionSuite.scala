@@ -16,7 +16,6 @@
  */
 package org.apache.spark.sql.auron
 
-import org.apache.spark.sql.execution.LocalTableScanExec
 import org.apache.spark.sql.execution.adaptive.AdaptiveSparkPlanExec
 import org.apache.spark.sql.execution.auron.plan.NativeParquetScanExec
 
@@ -24,7 +23,6 @@ class AuronSparkSessionExtensionSuite
     extends org.apache.spark.sql.QueryTest
     with BaseAuronSQLSuite
     with AuronSQLTestHelper {
-  import testImplicits._
 
   test("test Optimize preColumnarTransitions with FileSourceScanExec") {
     withTable("file_source_scan") {
