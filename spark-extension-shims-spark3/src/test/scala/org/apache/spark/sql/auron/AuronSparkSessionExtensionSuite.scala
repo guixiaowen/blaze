@@ -33,7 +33,7 @@ class AuronSparkSessionExtensionSuite
         .executedPlan
 
       val afterPlan = AuronColumnarOverrides
-        .apply(executedPlan.session)
+        .apply(spark)
         .preColumnarTransitions
         .apply(executedPlan)
       assert(
