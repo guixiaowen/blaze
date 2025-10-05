@@ -96,7 +96,7 @@ import org.apache.auron.protobuf.PhysicalPlanNode
 import org.apache.auron.sparkver
 
 object AuronConverters extends Logging {
-  def enableScan: Boolean =
+  def enableFileScan: Boolean =
     getBooleanConf("spark.auron.enable.fileScan", defaultValue = true)
   def enableProject: Boolean =
     getBooleanConf("spark.auron.enable.project", defaultValue = true)
@@ -179,7 +179,7 @@ object AuronConverters extends Logging {
     exec match {
       case e: ShuffleExchangeExec => tryConvert(e, convertShuffleExchangeExec)
       case e: BroadcastExchangeExec => tryConvert(e, convertBroadcastExchangeExec)
-      case e: FileSourceScanExec if enableScan => // scan
+      case e: FileSourceScanExec if enableFileScan => // scan
         tryConvert(e, convertFileSourceScanExec)
       case e: ProjectExec if enableProject => // project
         tryConvert(e, convertProjectExec)
