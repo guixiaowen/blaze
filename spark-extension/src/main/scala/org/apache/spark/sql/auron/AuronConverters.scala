@@ -97,7 +97,7 @@ import org.apache.auron.sparkver
 
 object AuronConverters extends Logging {
   def enableScan: Boolean =
-    getBooleanConf("spark.auron.enable.filescan", defaultValue = true)
+    getBooleanConf("spark.auron.enable.fileScan", defaultValue = true)
   def enableProject: Boolean =
     getBooleanConf("spark.auron.enable.project", defaultValue = true)
   def enableFilter: Boolean =
