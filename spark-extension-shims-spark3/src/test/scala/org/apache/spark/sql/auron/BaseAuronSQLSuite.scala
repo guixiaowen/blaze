@@ -28,6 +28,10 @@ trait BaseAuronSQLSuite extends SharedSparkSession {
         "spark.shuffle.manager",
         "org.apache.spark.sql.execution.auron.shuffle.AuronShuffleManager")
       .set("spark.memory.offHeap.enabled", "false")
+      .set("spark.eventLog.enabled", "true")
+      .set("spark.eventLog.dir", "file:/private/tmp/spark-events")
+      .set("spark.ui.enabled", "true")
+      .set("spark.ui.port", "4040")
       .set("spark.auron.enable", "true")
   }
 

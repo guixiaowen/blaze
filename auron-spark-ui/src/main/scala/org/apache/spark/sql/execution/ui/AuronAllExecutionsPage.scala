@@ -86,7 +86,7 @@ private[ui] class AuronAllExecutionsPage(parent: AuronSQLTab) extends WebUIPage(
         <br/>
       </div>
 
-    UIUtils.headerSparkPage(request, "Auron SQL", summary ++ content, parent)
+    UIUtils.headerSparkPage(request, "Auron SQL / DataFrame", summary ++ content, parent)
   }
 
   private def propertyHeader = Seq("Name", "Value")
