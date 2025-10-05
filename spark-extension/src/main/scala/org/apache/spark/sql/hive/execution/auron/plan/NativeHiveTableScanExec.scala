@@ -16,43 +16,37 @@
  */
 package org.apache.spark.sql.hive.execution.auron.plan
 
+import scala.collection.JavaConverters._
+import org.apache.spark.internal.Logging
+import org.apache.spark.sql.auron.{JniBridge, MetricNode, NativeConverters, NativeHelper, NativeRDD, Shims}
+import org.apache.spark.sql.catalyst.catalog.{ExternalCatalogUtils, HiveTableRelation}
+import org.apache.spark.sql.catalyst.plans.physical.Partitioning
+import org.apache.spark.sql.execution.datasources.{FilePartition, PartitionedFile}
+import org.apache.spark.sql.execution.metric.SQLMetric
+import org.apache.spark.sql.hive.execution.HiveTableScanExec
+import org.apache.spark.sql.types.{NullType, StructField, StructType}
+import org.apache.auron.{sparkver, protobuf => pb}
+import org.apache.hadoop.fs.FileSystem
+import org.apache.spark.{Partition, TaskContext}
+import org.apache.spark.broadcast.Broadcast
+import org.apache.spark.sql.SparkSession
+import org.apache.spark.sql.catalyst.InternalRow
+import org.apache.spark.sql.catalyst.expressions.{Cast, Literal}
+import org.apache.spark.sql.catalyst.util.{CaseInsensitiveMap, DateTimeUtils}
+import org.apache.spark.sql.execution.SparkPlan
+import org.apache.spark.util.SerializableConfiguration
+
+import java.net.URI
+import java.security.PrivilegedExceptionAction
 import java.util.UUID
 
-import scala.collection.JavaConverters._
-import scala.collection.Seq
-
-import org.apache.paimon.io.DataFileMeta
-import org.apache.paimon.table.FileStoreTable
-import org.apache.paimon.table.source.DataSplit
-import org.apache.paimon.utils.RowDataToObjectArrayConverter
-import org.apache.spark.Partition
-import org.apache.spark.TaskContext
-import org.apache.spark.internal.Logging
-import org.apache.spark.sql.SparkSession
-import org.apache.spark.sql.auron.MetricNode
-import org.apache.spark.sql.auron.NativeRDD
-import org.apache.spark.sql.auron.Shims
-import org.apache.spark.sql.catalyst.InternalRow
-import org.apache.spark.sql.catalyst.catalog.ExternalCatalogUtils
-import org.apache.spark.sql.catalyst.expressions.Cast
-import org.apache.spark.sql.catalyst.expressions.Literal
-import org.apache.spark.sql.catalyst.util.CaseInsensitiveMap
-import org.apache.spark.sql.catalyst.util.DateTimeUtils
-import org.apache.spark.sql.execution.datasources.FilePartition
-import org.apache.spark.sql.execution.datasources.PartitionedFile
-import org.apache.spark.sql.hive.auron.paimon.PaimonUtil
-import org.apache.spark.sql.hive.execution.HiveTableScanExec
-import org.apache.spark.sql.types.StructType
-
-import org.apache.auron.{protobuf => pb}
-
-case class NativePaimonTableScanExec(basedHiveScan: HiveTableScanExec)
-    extends NativeHiveTableScanBase(basedHiveScan)
+case class NativeHiveTableScanExec(basedHiveScan: HiveTableScanExec)
+  extends NativeHiveTableScanBase(basedHiveScan)
     with Logging {
 
   private lazy val table: FileStoreTable =
     PaimonUtil.loadTable(relation.tableMeta.location.toString)
-  private lazy val fileFormat = PaimonUtil.paimonFileFormat(table)
+  private lazy val fileFormat = basedHiveScan.
 
   override def doExecuteNative(): NativeRDD = {
     val nativeMetrics = MetricNode(
@@ -84,7 +78,7 @@ case class NativePaimonTableScanExec(basedHiveScan: HiveTableScanExec)
       Nil,
       rddShuffleReadFull = true,
       (partition, _) => {
-        val resourceId = s"NativeHiveTableScan:${UUID.randomUUID().toString}"
+        val resourceId = s"NativePaimonTableScan:${UUID.randomUUID().toString}"
         putJniBridgeResource(resourceId, broadcastedHadoopConf)
 
         val nativeFileGroup = nativeFileGroups(partition.asInstanceOf[FilePartition])
@@ -163,9 +157,9 @@ case class NativePaimonTableScanExec(basedHiveScan: HiveTableScanExec)
         // don't prune partitions
         // fork {@link CatalogDatabase#toRow}
         def toRow(
-            values: Seq[String],
-            partitionSchema: StructType,
-            defaultTimeZoneId: String): InternalRow = {
+                   values: Seq[String],
+                   partitionSchema: StructType,
+                   defaultTimeZoneId: String): InternalRow = {
           val caseInsensitiveProperties = CaseInsensitiveMap(
             relation.tableMeta.storage.properties)
           val timeZoneId =
@@ -179,6 +173,7 @@ case class NativePaimonTableScanExec(basedHiveScan: HiveTableScanExec)
             Cast(Literal(partValue), field.dataType, Option(timeZoneId)).eval()
           })
         }
+
         splits.map { split =>
           val values = rowDataToObjectArrayConverter.convert(split.partition()).map(_.toString)
           (split, toRow(values, partitionSchema, sessionLocalTimeZone))
@@ -212,11 +207,11 @@ case class NativePaimonTableScanExec(basedHiveScan: HiveTableScanExec)
 
   // fork {@link PartitionedFileUtil#splitFiles}
   private def splitFiles(
-      dataFileMeta: DataFileMeta,
-      filePath: String,
-      isSplitable: Boolean,
-      maxSplitBytes: Long,
-      partitionValues: InternalRow): Seq[PartitionedFile] = {
+                          dataFileMeta: DataFileMeta,
+                          filePath: String,
+                          isSplitable: Boolean,
+                          maxSplitBytes: Long,
+                          partitionValues: InternalRow): Seq[PartitionedFile] = {
     if (isSplitable) {
       (0L until dataFileMeta.fileSize() by maxSplitBytes).map { offset =>
         val remaining = dataFileMeta.fileSize() - offset
@@ -230,8 +225,8 @@ case class NativePaimonTableScanExec(basedHiveScan: HiveTableScanExec)
 
   // fork {@link FilePartition#maxSplitBytes}
   private def getMaxSplitBytes(
-      sparkSession: SparkSession,
-      selectedSplits: Seq[DataSplit]): Long = {
+                                sparkSession: SparkSession,
+                                selectedSplits: Seq[DataSplit]): Long = {
     val defaultMaxSplitBytes = sparkSession.sessionState.conf.filesMaxPartitionBytes
     val openCostInBytes = sparkSession.sessionState.conf.filesOpenCostInBytes
     val minPartitionNum = Shims.get.getMinPartitionNum(sparkSession)
@@ -242,4 +237,7 @@ case class NativePaimonTableScanExec(basedHiveScan: HiveTableScanExec)
 
     Math.min(defaultMaxSplitBytes, Math.max(openCostInBytes, bytesPerCore))
   }
+
+
+
 }

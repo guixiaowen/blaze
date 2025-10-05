@@ -295,6 +295,7 @@ object NativeBroadcastExchangeBase {
     val readerExec = pb.IpcReaderExecNode
       .newBuilder()
       .setSchema(nativeSchema)
+
       .setIpcProviderResourceId(readerIpcProviderResourceId)
 
     val buildHashMapExec = pb.BroadcastJoinBuildHashMapExecNode
