@@ -22,7 +22,7 @@ sealed trait AuronEvent extends SparkListenerEvent {}
 
 case class AuronBuildInfoEvent(info: Map[String, String]) extends AuronEvent {}
 
-case class AuronPlanFallbackEvent(
+case class AuronPlanNeverConvertEvent(
     executionId: Long,
     numAuronNodes: Int,
     numFallbackNodes: Int,

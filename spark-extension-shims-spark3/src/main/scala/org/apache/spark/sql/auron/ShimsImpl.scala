@@ -154,7 +154,6 @@ class ShimsImpl extends Shims with Logging {
   // set Auron spark ui if spark.auron.ui.enabled is true
   override def onApplyingExtension(): Unit = {
     if (SQLConf.get.getConfString(AuronConf.UI_ENABLED.key, "true").equals("true")) {
-
       val sparkContext = SparkContext.getOrCreate()
       val kvStore = sparkContext.statusStore.store.asInstanceOf[ElementTrackingStore]
       val statusStore = new AuronSQLAppStatusStore(kvStore)
@@ -167,7 +166,7 @@ class ShimsImpl extends Shims with Logging {
 
   private def postBuildInfoEvent(sparkContext: SparkContext): Unit = {
     val auronBuildInfo = new mutable.HashMap[String, String]()
-    auronBuildInfo.put("spark version", "3.2")
+    auronBuildInfo.put("spark version", sparkver.toString)
     val infoMap = auronBuildInfo.toMap
     val event = AuronBuildInfoEvent(infoMap)
     AuronEventUtils.post(sparkContext, event)

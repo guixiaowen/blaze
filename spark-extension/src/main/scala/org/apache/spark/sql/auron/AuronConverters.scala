@@ -17,11 +17,9 @@
 package org.apache.spark.sql.auron
 
 import java.util.ServiceLoader
-
 import scala.annotation.tailrec
 import scala.collection.JavaConverters._
 import scala.collection.mutable
-
 import org.apache.commons.lang3.reflect.MethodUtils
 import org.apache.hadoop.hive.ql.io.parquet.MapredParquetOutputFormat
 import org.apache.spark.Partition
@@ -33,7 +31,7 @@ import org.apache.spark.sql.auron.AuronConvertStrategy.convertStrategyTag
 import org.apache.spark.sql.auron.AuronConvertStrategy.convertToNonNativeTag
 import org.apache.spark.sql.auron.AuronConvertStrategy.isNeverConvert
 import org.apache.spark.sql.auron.AuronConvertStrategy.joinSmallerSideTag
-import org.apache.spark.sql.auron.NativeConverters.{roundRobinTypeSupported, scalarTypeSupported, StubExpr}
+import org.apache.spark.sql.auron.NativeConverters.{StubExpr, roundRobinTypeSupported, scalarTypeSupported}
 import org.apache.spark.sql.auron.util.AuronLogUtils.logDebugPlanConversion
 import org.apache.spark.sql.catalyst.expressions.AggregateWindowFunction
 import org.apache.spark.sql.catalyst.expressions.Alias
@@ -54,20 +52,7 @@ import org.apache.spark.sql.catalyst.plans.physical.HashPartitioning
 import org.apache.spark.sql.catalyst.plans.physical.Partitioning
 import org.apache.spark.sql.catalyst.plans.physical.RangePartitioning
 import org.apache.spark.sql.catalyst.plans.physical.RoundRobinPartitioning
-import org.apache.spark.sql.execution.ExpandExec
-import org.apache.spark.sql.execution.FileSourceScanExec
-import org.apache.spark.sql.execution.FilterExec
-import org.apache.spark.sql.execution.GenerateExec
-import org.apache.spark.sql.execution.GlobalLimitExec
-import org.apache.spark.sql.execution.LeafExecNode
-import org.apache.spark.sql.execution.LocalLimitExec
-import org.apache.spark.sql.execution.LocalTableScanExec
-import org.apache.spark.sql.execution.ProjectExec
-import org.apache.spark.sql.execution.SortExec
-import org.apache.spark.sql.execution.SparkPlan
-import org.apache.spark.sql.execution.TakeOrderedAndProjectExec
-import org.apache.spark.sql.execution.UnaryExecNode
-import org.apache.spark.sql.execution.UnionExec
+import org.apache.spark.sql.execution.{ExpandExec, FileSourceScanExec, FilterExec, GenerateExec, GlobalLimitExec, LeafExecNode, LocalLimitExec, LocalTableScanExec, ProjectExec, SQLExecution, SortExec, SparkPlan, TakeOrderedAndProjectExec, UnaryExecNode, UnionExec}
 import org.apache.spark.sql.execution.aggregate.HashAggregateExec
 import org.apache.spark.sql.execution.aggregate.ObjectHashAggregateExec
 import org.apache.spark.sql.execution.aggregate.SortAggregateExec
@@ -90,9 +75,9 @@ import org.apache.spark.sql.hive.execution.InsertIntoHiveTable
 import org.apache.spark.sql.hive.execution.auron.plan.NativeHiveTableScanBase
 import org.apache.spark.sql.internal.SQLConf
 import org.apache.spark.sql.types.LongType
-
 import org.apache.auron.protobuf.EmptyPartitionsExecNode
 import org.apache.auron.protobuf.PhysicalPlanNode
+import org.apache.auron.spark.ui.AuronPlanNeverConvertEvent
 import org.apache.auron.sparkver
 
 object AuronConverters extends Logging {
@@ -285,6 +270,16 @@ object AuronConverters extends Logging {
         logWarning(s"Falling back exec: ${exec.getClass.getSimpleName}: ${e.getMessage}")
         exec.setTagValue(convertibleTag, false)
         exec.setTagValue(convertStrategyTag, NeverConvert)
+        val sc = exec.session.sparkContext
+        val executionId = sc.getLocalProperty(SQLExecution.EXECUTION_ID_KEY)
+        val event = AuronPlanNeverConvertEvent(
+          executionId.toLong,
+          numGlutenNodes,
+          fallbackNodeToReason.size,
+          concat.toString(),
+          fallbackNodeToReason
+        )
+        GlutenEventUtils.post(sc, event)
         exec
     }
   }
