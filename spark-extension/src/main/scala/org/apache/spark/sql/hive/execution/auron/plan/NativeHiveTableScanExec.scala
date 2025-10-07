@@ -26,27 +26,23 @@ import org.apache.spark.sql.execution.metric.SQLMetric
 import org.apache.spark.sql.hive.execution.HiveTableScanExec
 import org.apache.spark.sql.types.{NullType, StructField, StructType}
 import org.apache.auron.{sparkver, protobuf => pb}
-import org.apache.hadoop.fs.FileSystem
 import org.apache.spark.{Partition, TaskContext}
-import org.apache.spark.broadcast.Broadcast
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.catalyst.expressions.{Cast, Literal}
 import org.apache.spark.sql.catalyst.util.{CaseInsensitiveMap, DateTimeUtils}
-import org.apache.spark.sql.execution.SparkPlan
-import org.apache.spark.util.SerializableConfiguration
+import org.apache.hadoop.hive.ql.metadata.{Table => HiveTable}
+import org.apache.spark.sql.auron.util.HiveTableUtil
+import org.apache.spark.sql.hive.client.HiveClientImpl
 
-import java.net.URI
-import java.security.PrivilegedExceptionAction
 import java.util.UUID
 
 case class NativeHiveTableScanExec(basedHiveScan: HiveTableScanExec)
   extends NativeHiveTableScanBase(basedHiveScan)
     with Logging {
 
-  private lazy val table: FileStoreTable =
-    PaimonUtil.loadTable(relation.tableMeta.location.toString)
-  private lazy val fileFormat = basedHiveScan.
+  private lazy val table: HiveTable = HiveClientImpl.toHiveTable(relation.tableMeta)
+  private lazy val fileFormat = HiveTableUtil.getFileFormat(table.getInputFormatClass)
 
   override def doExecuteNative(): NativeRDD = {
     val nativeMetrics = MetricNode(
@@ -78,7 +74,7 @@ case class NativeHiveTableScanExec(basedHiveScan: HiveTableScanExec)
       Nil,
       rddShuffleReadFull = true,
       (partition, _) => {
-        val resourceId = s"NativePaimonTableScan:${UUID.randomUUID().toString}"
+        val resourceId = s"NativeHiveTableScan:${UUID.randomUUID().toString}"
         putJniBridgeResource(resourceId, broadcastedHadoopConf)
 
         val nativeFileGroup = nativeFileGroups(partition.asInstanceOf[FilePartition])
@@ -92,7 +88,7 @@ case class NativeHiveTableScanExec(basedHiveScan: HiveTableScanExec)
           .addAllProjection(projection.map(Integer.valueOf).asJava)
           .setPartitionSchema(nativePartitionSchema)
           .build()
-        if (fileFormat.equalsIgnoreCase(PaimonUtil.orcFormat)) {
+        if (fileFormat.equals("orc")) {
           val nativeOrcScanExecBuilder = pb.OrcScanExecNode
             .newBuilder()
             .setBaseConf(nativeFileScanConf)
@@ -103,7 +99,7 @@ case class NativeHiveTableScanExec(basedHiveScan: HiveTableScanExec)
             .newBuilder()
             .setOrcScan(nativeOrcScanExecBuilder.build())
             .build()
-        } else {
+        } else if (fileFormat.equals("parquet")) {
           val nativeParquetScanExecBuilder = pb.ParquetScanExecNode
             .newBuilder()
             .setBaseConf(nativeFileScanConf)
@@ -125,7 +121,6 @@ case class NativeHiveTableScanExec(basedHiveScan: HiveTableScanExec)
   override def getFilePartitions(): Array[FilePartition] = {
     val currentTimeMillis = System.currentTimeMillis()
     val sparkSession = Shims.get.getSqlContext(basedHiveScan).sparkSession
-    // TODO: Verify paimon cow table without level0 and deleted row in DataSplit and all DataFileMetas are same level
     val splits =
       table.newScan().plan().splits().asScala.map(split => split.asInstanceOf[DataSplit])
     logInfo(
@@ -237,7 +232,4 @@ case class NativeHiveTableScanExec(basedHiveScan: HiveTableScanExec)
 
     Math.min(defaultMaxSplitBytes, Math.max(openCostInBytes, bytesPerCore))
   }
-
-
-
 }
