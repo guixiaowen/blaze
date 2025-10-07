@@ -84,7 +84,7 @@ case class NativePaimonTableScanExec(basedHiveScan: HiveTableScanExec)
       Nil,
       rddShuffleReadFull = true,
       (partition, _) => {
-        val resourceId = s"NativeHiveTableScan:${UUID.randomUUID().toString}"
+        val resourceId = s"NativePaimonTableScan:${UUID.randomUUID().toString}"
         putJniBridgeResource(resourceId, broadcastedHadoopConf)
 
         val nativeFileGroup = nativeFileGroups(partition.asInstanceOf[FilePartition])
