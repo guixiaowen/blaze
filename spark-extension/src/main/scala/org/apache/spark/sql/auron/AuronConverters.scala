@@ -134,10 +134,10 @@ object AuronConverters extends Logging {
     getBooleanConf("spark.auron.enable.local.table.scan", defaultValue = true)
   def enableDataWriting: Boolean =
     getBooleanConf("spark.auron.enable.data.writing", defaultValue = false)
-  def enableScanParquet: Boolean =
-    getBooleanConf("spark.auron.enable.scan.parquet", defaultValue = true)
-  def enableScanOrc: Boolean =
-    getBooleanConf("spark.auron.enable.scan.orc", defaultValue = true)
+  def enableFileScanParquet: Boolean =
+    getBooleanConf("spark.auron.enable.fileScan.parquet", defaultValue = true)
+  def enableFileScanOrc: Boolean =
+    getBooleanConf("spark.auron.enable.fileScan.orc", defaultValue = true)
 
   private val extConvertProviders = ServiceLoader.load(classOf[AuronConvertProvider]).asScala
   def extConvertSupported(exec: SparkPlan): Boolean = {
@@ -372,10 +372,10 @@ object AuronConverters extends Logging {
         "tableIdentifier" -> tableIdentifier))
     relation.fileFormat match {
       case p if p.getClass.getName.endsWith("ParquetFileFormat") =>
-        assert(enableScanParquet)
+        assert(enableFileScanParquet)
         addRenameColumnsExec(Shims.get.createNativeParquetScanExec(exec))
       case p if p.getClass.getName.endsWith("OrcFileFormat") =>
-        assert(enableScanOrc)
+        assert(enableFileScanOrc)
         addRenameColumnsExec(Shims.get.createNativeOrcScanExec(exec))
       case p =>
         throw new NotImplementedError(
