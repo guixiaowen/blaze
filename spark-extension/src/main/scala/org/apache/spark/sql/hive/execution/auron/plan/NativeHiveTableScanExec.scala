@@ -116,120 +116,21 @@ case class NativeHiveTableScanExec(basedHiveScan: HiveTableScanExec)
   }
 
   override val nodeName: String =
-    s"NativePaimonTableScan $tableName"
+    s"NativeHiveTableScan $tableName"
 
   override def getFilePartitions(): Array[FilePartition] = {
-    val currentTimeMillis = System.currentTimeMillis()
-    val sparkSession = Shims.get.getSqlContext(basedHiveScan).sparkSession
-    val splits =
-      table.newScan().plan().splits().asScala.map(split => split.asInstanceOf[DataSplit])
-    logInfo(
-      s"Get paimon table $tableName splits elapse: ${System.currentTimeMillis() - currentTimeMillis} ms")
 
-    val dataSplitPartitions = if (relation.isPartitioned) {
-      val rowDataToObjectArrayConverter = new RowDataToObjectArrayConverter(
-        table.schema().logicalPartitionType())
-      val sessionLocalTimeZone = sparkSession.sessionState.conf.sessionLocalTimeZone
-      if (relation.prunedPartitions.nonEmpty) {
-        val partitionPathAndValues =
-          relation.prunedPartitions.get.map { catalogTablePartition =>
-            (
-              catalogTablePartition.spec.map { case (k, v) => s"$k=$v" }.mkString("/"),
-              catalogTablePartition.toRow(partitionSchema, sessionLocalTimeZone))
-          }.toMap
-        val partitionKeys = table.schema().partitionKeys()
-        // pruning paimon splits
-        splits
-          .map { split =>
-            val values = rowDataToObjectArrayConverter.convert(split.partition())
-            val partitionPath = values.zipWithIndex
-              .map { case (v, i) => s"${partitionKeys.get(i)}=${v.toString}" }
-              .mkString("/")
-            (split, partitionPathAndValues.getOrElse(partitionPath, null))
-          }
-          .filter(_._2 != null)
-      } else {
-        // don't prune partitions
-        // fork {@link CatalogDatabase#toRow}
-        def toRow(
-                   values: Seq[String],
-                   partitionSchema: StructType,
-                   defaultTimeZoneId: String): InternalRow = {
-          val caseInsensitiveProperties = CaseInsensitiveMap(
-            relation.tableMeta.storage.properties)
-          val timeZoneId =
-            caseInsensitiveProperties.getOrElse(DateTimeUtils.TIMEZONE_OPTION, defaultTimeZoneId)
-          InternalRow.fromSeq(partitionSchema.zipWithIndex.map { case (field, index) =>
-            val partValue = if (values(index) == ExternalCatalogUtils.DEFAULT_PARTITION_NAME) {
-              null
-            } else {
-              values(index)
-            }
-            Cast(Literal(partValue), field.dataType, Option(timeZoneId)).eval()
-          })
-        }
+    if (relation.isPartitioned) {
+      // partitioned table
 
-        splits.map { split =>
-          val values = rowDataToObjectArrayConverter.convert(split.partition()).map(_.toString)
-          (split, toRow(values, partitionSchema, sessionLocalTimeZone))
-        }
-      }
     } else {
-      splits.map((_, InternalRow.empty))
+      // no partitioned table
+      val tablePath = table.getPath
+
+
     }
-    logInfo(
-      s"Table: $tableName, total splits: ${splits.length}, selected splits: ${dataSplitPartitions.length}")
-
-    val isSplitable =
-      fileFormat.equalsIgnoreCase(PaimonUtil.parquetFormat) || fileFormat.equalsIgnoreCase(
-        PaimonUtil.orcFormat)
-    val openCostInBytes = sparkSession.sessionState.conf.filesOpenCostInBytes
-    val maxSplitBytes = getMaxSplitBytes(sparkSession, dataSplitPartitions.map(_._1))
-    logInfo(
-      s"Planning scan with bin packing, max size: $maxSplitBytes bytes, " +
-        s"open cost is considered as scanning $openCostInBytes bytes.")
-    val partitionedFiles = dataSplitPartitions
-      .flatMap { partition =>
-        partition._1.dataFiles().asScala.flatMap { dataFileMeta =>
-          val filePath = s"${partition._1.bucketPath()}/${dataFileMeta.fileName()}"
-          splitFiles(dataFileMeta, filePath, isSplitable, maxSplitBytes, partition._2)
-        }
-      }
-      .sortBy(_.length)(implicitly[Ordering[Long]].reverse)
-      .toSeq
-    FilePartition.getFilePartitions(sparkSession, partitionedFiles, maxSplitBytes).toArray
+    Array[FilePartition]
   }
 
-  // fork {@link PartitionedFileUtil#splitFiles}
-  private def splitFiles(
-                          dataFileMeta: DataFileMeta,
-                          filePath: String,
-                          isSplitable: Boolean,
-                          maxSplitBytes: Long,
-                          partitionValues: InternalRow): Seq[PartitionedFile] = {
-    if (isSplitable) {
-      (0L until dataFileMeta.fileSize() by maxSplitBytes).map { offset =>
-        val remaining = dataFileMeta.fileSize() - offset
-        val size = if (remaining > maxSplitBytes) maxSplitBytes else remaining
-        Shims.get.getPartitionedFile(partitionValues, filePath, offset, size)
-      }
-    } else {
-      Seq(Shims.get.getPartitionedFile(partitionValues, filePath, 0, dataFileMeta.fileSize()))
-    }
-  }
 
-  // fork {@link FilePartition#maxSplitBytes}
-  private def getMaxSplitBytes(
-                                sparkSession: SparkSession,
-                                selectedSplits: Seq[DataSplit]): Long = {
-    val defaultMaxSplitBytes = sparkSession.sessionState.conf.filesMaxPartitionBytes
-    val openCostInBytes = sparkSession.sessionState.conf.filesOpenCostInBytes
-    val minPartitionNum = Shims.get.getMinPartitionNum(sparkSession)
-    val totalBytes = selectedSplits
-      .flatMap(_.dataFiles().asScala.map(_.fileSize() + openCostInBytes))
-      .sum
-    val bytesPerCore = totalBytes / minPartitionNum
-
-    Math.min(defaultMaxSplitBytes, Math.max(openCostInBytes, bytesPerCore))
-  }
 }
