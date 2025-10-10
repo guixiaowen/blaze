@@ -18,7 +18,6 @@ package org.apache.spark.sql.execution.ui
 
 import javax.servlet.http.HttpServletRequest
 
-import scala.collection.mutable
 import scala.xml.{Node, NodeSeq}
 
 import org.apache.spark.internal.Logging
@@ -30,18 +29,6 @@ private[ui] class AuronAllExecutionsPage(parent: AuronSQLTab) extends WebUIPage(
 
   override def render(request: HttpServletRequest): Seq[Node] = {
     val buildInfo = sqlStore.buildInfo()
-
-    val content = {
-      val _content = mutable.ListBuffer[Node]()
-      _content
-    }
-    content ++=
-      <script>
-        function clickDetail(details) {{
-        details.parentNode.querySelector('.stage-details').classList.toggle('collapsed')
-        }}
-      </script>
-
     val infos =
       UIUtils.listingTable(propertyHeader, propertyRow, buildInfo.info, fixedWidth = true)
     val summary: NodeSeq =
@@ -61,7 +48,7 @@ private[ui] class AuronAllExecutionsPage(parent: AuronSQLTab) extends WebUIPage(
         <br/>
       </div>
 
-    UIUtils.headerSparkPage(request, "Auron SQL / DataFrame", summary ++ content, parent)
+    UIUtils.headerSparkPage(request, "Auron", summary, parent)
   }
 
   private def propertyHeader = Seq("Name", "Value")

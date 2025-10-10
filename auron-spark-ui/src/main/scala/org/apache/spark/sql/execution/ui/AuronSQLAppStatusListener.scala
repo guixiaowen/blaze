@@ -16,12 +16,9 @@
  */
 package org.apache.spark.sql.execution.ui
 
-import scala.collection.mutable
-
 import org.apache.spark.{SparkConf, SparkContext}
 import org.apache.spark.internal.Logging
 import org.apache.spark.scheduler.{SparkListener, SparkListenerEvent}
-import org.apache.spark.sql.internal.StaticSQLConf.UI_RETAINED_EXECUTIONS
 import org.apache.spark.status.ElementTrackingStore
 
 import org.apache.auron.spark.ui.AuronBuildInfoEvent
@@ -29,11 +26,6 @@ import org.apache.auron.spark.ui.AuronBuildInfoEvent
 class AuronSQLAppStatusListener(conf: SparkConf, kvstore: ElementTrackingStore)
     extends SparkListener
     with Logging {
-  private val executionIdToDescription = new mutable.HashMap[Long, String]
-
-  kvstore.addTrigger(classOf[SQLExecutionUIData], conf.get[Int](UI_RETAINED_EXECUTIONS)) {
-    count => cleanupExecutions(count)
-  }
 
   def getAuronBuildInfo(): Long = {
     kvstore.count(classOf[AuronBuildInfoUIData])
@@ -44,26 +36,9 @@ class AuronSQLAppStatusListener(conf: SparkConf, kvstore: ElementTrackingStore)
     kvstore.write(uiData)
   }
 
-  private def onSQLExecutionStart(event: SparkListenerSQLExecutionStart): Unit = {
-    executionIdToDescription.put(event.executionId, event.description)
-  }
-
-  private def onSQLExtensionEnd(event: SparkListenerSQLExecutionEnd): Unit = {
-    executionIdToDescription.remove(event.executionId)
-  }
-
   override def onOtherEvent(event: SparkListenerEvent): Unit = event match {
-    case e: SparkListenerSQLExecutionStart => onSQLExecutionStart(e)
-    case e: SparkListenerSQLExecutionEnd => onSQLExtensionEnd(e)
     case e: AuronBuildInfoEvent => onAuronBuildInfo(e)
     case _ => // Ignore
-  }
-
-  private def cleanupExecutions(count: Long): Unit = {
-    val countToDelete = count - conf.get(UI_RETAINED_EXECUTIONS)
-    if (countToDelete <= 0) {
-      return
-    }
   }
 
 }

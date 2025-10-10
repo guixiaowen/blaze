@@ -23,7 +23,7 @@ class AuronSQLTab(val sqlStore: AuronSQLAppStatusStore, sparkUI: SparkUI)
     extends SparkUITab(sparkUI, "auron")
     with Logging {
 
-  override val name = "AURON SQL / DataFrame"
+  override val name = "AURON"
 
   val parent = sparkUI
   attachPage(new AuronAllExecutionsPage(this))
