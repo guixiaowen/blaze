@@ -337,10 +337,10 @@ object AuronConverters extends Logging {
         val neverConvertReason = e match {
           case _: AssertionError =>
             exec match {
-              case _: FileSourceScanExec if enableScan =>
-                if (!enableScanParquet) {
+              case _: FileSourceScanExec if enableFileScan =>
+                if (!enableFileScanParquet) {
                   "Conversion disabled: spark.auron.enable.scan.parquet=false."
-                } else if (!enableScanOrc) {
+                } else if (!enableFileScanOrc) {
                   "Conversion disabled: spark.auron.enable.scan.orc=false."
                 } else {
                   s"Falling back exec: ${exec.getClass.getSimpleName}: ${e.getMessage}"
