@@ -183,14 +183,9 @@ object AuronConverters extends Logging {
 
   def convertSparkPlan(exec: SparkPlan): SparkPlan = {
     exec match {
-      case e: ShuffleExchangeExec => tryConvert(e, convertShuffleExchangeExec)
+      case e: ShuffleExchangeExec if enableExchange => tryConvert(e, convertShuffleExchangeExec)
       case e: BroadcastExchangeExec if enableBroadcastExchange =>
         tryConvert(e, convertBroadcastExchangeExec)
-      case e: ShuffleExchangeExec if enableExchange => tryConvert(e, convertShuffleExchangeExec)
-      case e: BroadcastExchangeExec =>
-        tryConvert(e, convertBroadcastExchangeExec)
-      case e: FileSourceScanExec if enableScan => // scan
-      case e: BroadcastExchangeExec if enableBroadcastExchange => tryConvert(e, convertBroadcastExchangeExec)
       case e: FileSourceScanExec if enableFileScan => // scan
         tryConvert(e, convertFileSourceScanExec)
       case e: ProjectExec if enableProject => // project
@@ -289,7 +284,7 @@ object AuronConverters extends Logging {
   private def addNeverConvertReasonTag(exec: SparkPlan) = {
     val neverConvertReason =
       exec match {
-        case _: FileSourceScanExec if !enableScan =>
+        case _: FileSourceScanExec if !enableFileScan =>
           "Conversion disabled: spark.auron.enable.scan=false."
         case _: ProjectExec if !enableProject =>
           "Conversion disabled: spark.auron.enable.project=false."
