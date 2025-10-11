@@ -19,17 +19,19 @@ package org.apache.spark.sql.auron;
 import java.lang.management.BufferPoolMXBean;
 import java.lang.management.ManagementFactory;
 import java.net.URI;
+import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
+import org.apache.auron.functions.AuronUDFWrapperContext;
+import org.apache.auron.hadoop.fs.FSDataInputWrapper;
+import org.apache.auron.hadoop.fs.FSDataInputWrapper$;
+import org.apache.auron.hadoop.fs.FSDataOutputWrapper;
+import org.apache.auron.hadoop.fs.FSDataOutputWrapper$;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.spark.SparkEnv;
 import org.apache.spark.TaskContext;
 import org.apache.spark.TaskContext$;
-import org.apache.spark.auron.FSDataInputWrapper;
-import org.apache.spark.auron.FSDataInputWrapper$;
-import org.apache.spark.auron.FSDataOutputWrapper;
-import org.apache.spark.auron.FSDataOutputWrapper$;
 import org.apache.spark.sql.auron.memory.OnHeapSpillManager;
 import org.apache.spark.sql.auron.memory.OnHeapSpillManager$;
 import org.apache.spark.sql.auron.util.TaskContextHelper$;
@@ -120,5 +122,9 @@ public class JniBridge {
         TaskContext$.MODULE$.setTaskContext(tc);
         TaskContextHelper$.MODULE$.setNativeThreadName();
         TaskContextHelper$.MODULE$.setHDFSCallerContext();
+    }
+
+    public static AuronUDFWrapperContext getAuronUDFWrapperContext(ByteBuffer udfSerialized) {
+        throw new UnsupportedOperationException("This API is designed to support next-generation multi-engine.");
     }
 }

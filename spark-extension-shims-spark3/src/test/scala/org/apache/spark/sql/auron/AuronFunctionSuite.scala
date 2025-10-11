@@ -100,4 +100,24 @@ class AuronFunctionSuite
       checkAnswer(df, Seq(Row("11", "537061726B2053514C")))
     }
   }
+
+  test("stddev_samp function with UDAF fallback") {
+    withSQLConf("spark.auron.udafFallback.enable" -> "true") {
+      withTable("t1") {
+        sql("create table t1(c1 double) using parquet")
+        sql("insert into t1 values(10.0), (20.0), (30.0), (31.0), (null)")
+        val df = sql("select stddev_samp(c1) from t1")
+        checkAnswer(df, Seq(Row(9.844626283748239)))
+      }
+    }
+  }
+
+  test("regexp_extract function with UDF failback") {
+    withTable("t1") {
+      sql("create table t1(c1 string) using parquet")
+      sql("insert into t1 values('Auron Spark SQL')")
+      val df = sql("select regexp_extract(c1, '^A(.*)L$', 1) from t1")
+      checkAnswer(df, Seq(Row("uron Spark SQ")))
+    }
+  }
 }
