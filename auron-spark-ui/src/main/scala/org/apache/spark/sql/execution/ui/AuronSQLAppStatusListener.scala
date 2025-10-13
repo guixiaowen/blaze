@@ -17,12 +17,14 @@
 package org.apache.spark.sql.execution.ui
 
 import scala.collection.mutable
+
 import org.apache.spark.{SparkConf, SparkContext}
 import org.apache.spark.internal.Logging
 import org.apache.spark.scheduler.{SparkListener, SparkListenerEvent}
-import org.apache.spark.status.{ElementTrackingStore, KVUtils}
-import org.apache.auron.spark.ui.{AuronBuildInfoEvent, AuronPlanFallbackEvent}
 import org.apache.spark.sql.internal.StaticSQLConf.UI_RETAINED_EXECUTIONS
+import org.apache.spark.status.{ElementTrackingStore, KVUtils}
+
+import org.apache.auron.spark.ui.{AuronBuildInfoEvent, AuronPlanFallbackEvent}
 
 class AuronSQLAppStatusListener(conf: SparkConf, kvstore: ElementTrackingStore)
     extends SparkListener
@@ -56,8 +58,6 @@ class AuronSQLAppStatusListener(conf: SparkConf, kvstore: ElementTrackingStore)
         event.fallbackNodeToReason.toSeq.sortBy(_._1))
       kvstore.write(uiData)
     } else {
-      // the first stage applies rule before post `SparkListenerSQLExecutionStart`,
-      // so we should wait `SparkListenerSQLExecutionStart` then write to store.
       executionIdToFallbackEvent.put(event.executionId, event.copy())
     }
   }
