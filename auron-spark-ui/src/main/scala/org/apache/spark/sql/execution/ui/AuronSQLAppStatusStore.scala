@@ -27,6 +27,14 @@ class AuronSQLAppStatusStore(store: KVStore) {
   }
 }
 
+class AuronSQLExecutionUIData(
+    val executionId: Long,
+    val description: String,
+    val numAuronNodes: Int,
+    val numFallbackNodes: Int,
+    val fallbackDescription: String,
+    val fallbackNodeToReason: Seq[(String, String)]) {}
+
 class AuronBuildInfoUIData(val info: Seq[(String, String)]) {
   @JsonIgnore
   @KVIndex
