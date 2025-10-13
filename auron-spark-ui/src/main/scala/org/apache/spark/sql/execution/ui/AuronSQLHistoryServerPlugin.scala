@@ -31,7 +31,7 @@ class AuronSQLHistoryServerPlugin extends AppHistoryServerPlugin {
 
   override def setupUI(ui: SparkUI): Unit = {
     val sqlStatusStore = new AuronSQLAppStatusStore(ui.store.store)
-    if (sqlStatusStore.buildInfo() != null) {
+    if (sqlStatusStore.executionsCount() > 0) {
       new AuronSQLTab(sqlStatusStore, ui)
     }
   }
