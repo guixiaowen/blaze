@@ -81,8 +81,6 @@ class EmptyNativeRDD(@transient private val rddSparkContext: SparkContext)
     with Logging
     with Serializable {
 
-  setName(friendlyName)
-
   override protected def getPartitions: Array[Partition] = Array.empty
 
   override def compute(split: Partition, context: TaskContext): Iterator[InternalRow] = {
