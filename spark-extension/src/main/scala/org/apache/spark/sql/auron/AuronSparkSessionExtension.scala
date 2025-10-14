@@ -22,12 +22,10 @@ import org.apache.spark.internal.config.ConfigEntry
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.SparkSessionExtensions
 import org.apache.spark.sql.auron.AuronTreeNodeTag._
-import org.apache.spark.sql.catalyst.plans.QueryPlan
 import org.apache.spark.sql.catalyst.rules.Rule
 import org.apache.spark.sql.execution.ColumnarRule
 import org.apache.spark.sql.execution.LocalTableScanExec
 import org.apache.spark.sql.execution.SparkPlan
-import org.apache.spark.sql.execution.adaptive.{AdaptiveSparkPlanExec, QueryStageExec}
 import org.apache.spark.sql.internal.SQLConf
 
 class AuronSparkSessionExtension extends (SparkSessionExtensions => Unit) with Logging {
@@ -89,7 +87,7 @@ case class AuronColumnarOverrides(sparkSession: SparkSession) extends ColumnarRu
         dumpSimpleSparkPlanTreeNode(sparkPlanTransformed)
 
         logInfo(s"Transformed spark plan after preColumnarTransitions:\n${sparkPlanTransformed
-            .treeString(verbose = true, addSuffix = true)}")
+          .treeString(verbose = true, addSuffix = true)}")
 
         // post-transform
         Shims.get.postTransform(sparkPlanTransformed, sparkSession.sparkContext)
@@ -101,27 +99,20 @@ case class AuronColumnarOverrides(sparkSession: SparkSession) extends ColumnarRu
   override def postColumnarTransitions: Rule[SparkPlan] = {
     new Rule[SparkPlan] {
       override def apply(sparkPlan: SparkPlan): SparkPlan = {
+        def removeTags(sparkPlan: SparkPlan): SparkPlan = {
+          sparkPlan.foreachUp { case p =>
+            // 清理当前节点的 tag
+            p.unsetTagValue(convertibleTag)
+            p.unsetTagValue(convertToNonNativeTag)
+            p.unsetTagValue(convertStrategyTag)
+            p.unsetTagValue(neverConvertReasonTag)
+            p.unsetTagValue(childOrderingRequiredTag)
+            p.unsetTagValue(joinSmallerSideTag)
+          }
+          sparkPlan
+        }
         removeTags(sparkPlan)
       }
-    }
-
-    def removeTags(sparkPlan: QueryPlan[_]): SparkPlan  = {
-      def remove(p: QueryPlan[_], children: Seq[QueryPlan[_]]): Unit = {
-        p.unsetTagValue(AuronTreeNodeTag.convertibleTag)
-        p.unsetTagValue(AuronTreeNodeTag.convertToNonNativeTag)
-        p.unsetTagValue(AuronTreeNodeTag.convertStrategyTag)
-        p.unsetTagValue(AuronTreeNodeTag.neverConvertReasonTag)
-        p.unsetTagValue(AuronTreeNodeTag.childOrderingRequiredTag)
-        p.unsetTagValue(AuronTreeNodeTag.joinSmallerSideTag)
-        children.foreach(removeTags)
-      }
-
-      sparkPlan.foreach {
-        case p: AdaptiveSparkPlanExec => remove(p, Seq(p.executedPlan, p.initialPlan))
-        case p: QueryStageExec => remove(p, Seq(p.plan))
-        case plan: QueryPlan[_] => remove(plan, plan.innerChildren)
-      }
-      sparkPlan
     }
   }
 }

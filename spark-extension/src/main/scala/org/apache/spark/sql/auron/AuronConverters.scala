@@ -27,7 +27,8 @@ import org.apache.hadoop.hive.ql.io.parquet.MapredParquetOutputFormat
 import org.apache.spark.Partition
 import org.apache.spark.broadcast.Broadcast
 import org.apache.spark.internal.{config, Logging}
-import org.apache.spark.sql.auron.AuronConvertStrategy.{childOrderingRequiredTag, convertibleTag, convertStrategyTag, convertToNonNativeTag, isNeverConvert, joinSmallerSideTag, neverConvertReasonTag}
+import org.apache.spark.sql.auron.AuronConvertStrategy.isNeverConvert
+import org.apache.spark.sql.auron.AuronTreeNodeTag._
 import org.apache.spark.sql.auron.NativeConverters.{roundRobinTypeSupported, scalarTypeSupported, StubExpr}
 import org.apache.spark.sql.auron.util.AuronLogUtils.logDebugPlanConversion
 import org.apache.spark.sql.catalyst.expressions.AggregateWindowFunction
@@ -462,7 +463,7 @@ object AuronConverters extends Logging {
       case p =>
         throw new NotImplementedError(
           s"Cannot convert FileSourceScanExec tableIdentifier: ${tableIdentifier.getOrElse(
-              "unknown")}, class: ${p.getClass.getName}")
+            "unknown")}, class: ${p.getClass.getName}")
     }
   }
 
