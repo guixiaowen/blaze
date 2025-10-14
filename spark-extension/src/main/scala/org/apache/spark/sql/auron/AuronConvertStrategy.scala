@@ -18,7 +18,7 @@ package org.apache.spark.sql.auron
 
 import org.apache.commons.lang3.reflect.MethodUtils
 import org.apache.spark.internal.Logging
-import org.apache.spark.sql.catalyst.trees.TreeNodeTag
+import org.apache.spark.sql.auron.AuronTreeNodeTag._
 import org.apache.spark.sql.execution.ExpandExec
 import org.apache.spark.sql.execution.FileSourceScanExec
 import org.apache.spark.sql.execution.FilterExec
@@ -49,14 +49,6 @@ import org.apache.spark.sql.execution.window.WindowExec
 
 object AuronConvertStrategy extends Logging {
   import AuronConverters._
-
-  val convertibleTag: TreeNodeTag[Boolean] = TreeNodeTag("auron.convertible")
-  val convertToNonNativeTag: TreeNodeTag[Boolean] = TreeNodeTag("auron.convertToNonNative")
-  val convertStrategyTag: TreeNodeTag[ConvertStrategy] = TreeNodeTag("auron.convert.strategy")
-  val neverConvertReasonTag: TreeNodeTag[String] = TreeNodeTag("auron.never.convert.reason")
-  val childOrderingRequiredTag: TreeNodeTag[Boolean] = TreeNodeTag(
-    "auron.child.ordering.required")
-  val joinSmallerSideTag: TreeNodeTag[BuildSide] = TreeNodeTag("auron.join.smallerSide")
 
   def apply(exec: SparkPlan): Unit = {
     exec.foreach(_.setTagValue(convertibleTag, true))
