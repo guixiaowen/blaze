@@ -26,7 +26,7 @@ import org.apache.commons.lang3.reflect.MethodUtils
 import org.apache.hadoop.hive.ql.io.parquet.MapredParquetOutputFormat
 import org.apache.spark.Partition
 import org.apache.spark.broadcast.Broadcast
-import org.apache.spark.internal.{config, Logging}
+import org.apache.spark.internal.Logging
 import org.apache.spark.sql.auron.AuronConvertStrategy.{childOrderingRequiredTag, convertibleTag, convertStrategyTag, convertToNonNativeTag, isNeverConvert, joinSmallerSideTag, neverConvertReasonTag}
 import org.apache.spark.sql.auron.NativeConverters.{roundRobinTypeSupported, scalarTypeSupported, StubExpr}
 import org.apache.spark.sql.auron.util.AuronLogUtils.logDebugPlanConversion
@@ -135,14 +135,8 @@ object AuronConverters extends Logging {
     getBooleanConf("spark.auron.enable.scan.orc", defaultValue = true)
   def enableBroadcastExchange: Boolean =
     getBooleanConf("spark.auron.enable.broadcastExchange", defaultValue = true)
-  def enableShuffleExchange: Boolean = {
-    val shuffleManager = SQLConf.get.getConfString(config.SHUFFLE_MANAGER.key)
-    getBooleanConf(
-      "spark.auron.enable.shuffleExchange",
-      defaultValue = true) && !shuffleManager.isEmpty && (shuffleManager.contains(
-      "AuronShuffleManager") || shuffleManager.contains(
-      "AuronUniffleShuffleManager") || shuffleManager.contains("AuronCelebornShuffleManager"))
-  }
+  def enableShuffleExchange: Boolean =
+    getBooleanConf("spark.auron.enable.shuffleExchange", defaultValue = true)
 
   private val extConvertProviders = ServiceLoader.load(classOf[AuronConvertProvider]).asScala
   def extConvertSupported(exec: SparkPlan): Boolean = {
