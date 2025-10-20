@@ -37,11 +37,12 @@ print_help() {
     echo "  --clean <true|false>     Clean before build (default: true)"
     echo "  --skiptests <true|false> Skip unit tests (default: true)"
     echo "  --flink <VERSION>        Specify Flink version (e.g. 1.18)"
+    echo "  --iceberg <VERSION>      Specify Iceberg version (e.g. 1.9)"
     echo "  -h, --help               Show this help message"
     echo
     echo "Examples:"
     echo "  $0 --pre --sparkver 3.5 --scalaver 2.12 -DskipBuildNative"
-    echo "  $0 --docker true --image centos7 --clean true --skiptests true --release --sparkver 3.5 --scalaver 2.12 --celeborn 0.5 --uniffle 0.10 --paimon 1.2"
+    echo "  $0 --docker true --image centos7 --clean true --skiptests true --release --sparkver 3.5 --scalaver 2.12 --celeborn 0.5 --uniffle 0.10 --paimon 1.2 --iceberg 1.9"
     exit 0
 }
 
@@ -60,6 +61,7 @@ CELEBORN_VER=""
 UNIFFLE_VER=""
 PAIMON_VER=""
 FLINK_VER=""
+ICEBERG_VER=""
 
 # Parse command-line arguments
 while [[ $# -gt 0 ]]; do
@@ -189,6 +191,29 @@ while [[ $# -gt 0 ]]; do
                 exit 1
             fi
             ;;
+        --iceberg)
+            if [[ -n "$2" && "$2" != -* ]]; then
+                ICEBERG_VER="$2"
+                if [ "$ICEBERG_VER" = "1.9" ] ; then
+                  echo "Building Iceberg version: $ICEBERG_VER"
+                else
+                  echo "ERROR: Invalid Iceberg version: $ICEBERG_VER. The currently supported version is: 1.9."
+                  exit 1
+                fi
+                if [ -z "$SPARK_VER" ]; then
+                  echo "ERROR: Building Iceberg requires building Spark at the same time, and only Spark versions 3.4 or 3.5 are supported."
+                  exit 1
+                fi
+                if [ "$SPARK_VER" != "3.4" ] && [ "$SPARK_VER" != "3.5" ]; then
+                  echo "ERROR: Building Iceberg requires building Spark versions are 3.4 or 3.5."
+                  exit 1
+                fi
+                shift 2
+            else
+                echo "ERROR: --iceberg requires version argument" >&2
+                exit 1
+            fi
+            ;;
         --flink)
             if [[ -n "$2" && "$2" != -* ]]; then
                 FLINK_VER="$2"
@@ -287,6 +312,9 @@ fi
 if [[ -n "$FLINK_VER" ]]; then
     BUILD_ARGS+=("-Pflink-$FLINK_VER")
 fi
+if [[ -n "$ICEBERG_VER" ]]; then
+    BUILD_ARGS+=("-Piceberg-$ICEBERG_VER")
+fi
 
 MVN_ARGS=("${CLEAN_ARGS[@]}" "${BUILD_ARGS[@]}")
 
@@ -310,6 +338,7 @@ RUST_VERSION=$(rustc --version | awk '{print $2}')
   echo "uniffle.version=${UNIFFLE_VER}"
   echo "paimon.version=${PAIMON_VER}"
   echo "flink.version=${FLINK_VER}"
+  echo "iceberg.version=${ICEBERG_VER}"
   echo "build.timestamp=$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
 } > "$BUILD_INFO_FILE"
 
