@@ -259,11 +259,11 @@ while [[ $# -gt 0 ]]; do
                   print_invalid_option_error Iceberg "$ICEBERG_VER" "${SUPPORTED_ICEBERG_VERSIONS[@]}"
                 fi
                 if [ -z "$SPARK_VER" ]; then
-                  echo "ERROR: Building Iceberg requires building Spark at the same time, and only Spark versions 3.4 or 3.5 are supported."
+                  echo "ERROR: Building iceberg requires spark at the same time, and only Spark versions 3.4 or 3.5 are supported."
                   exit 1
                 fi
                 if [ "$SPARK_VER" != "3.4" ] && [ "$SPARK_VER" != "3.5" ]; then
-                  echo "ERROR: Building Iceberg requires building Spark versions are 3.4 or 3.5."
+                  echo "ERROR: Building iceberg requires spark versions are 3.4 or 3.5."
                   exit 1
                 fi
                 shift 2
