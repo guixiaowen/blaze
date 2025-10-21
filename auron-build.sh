@@ -364,7 +364,7 @@ mkdir -p "$(dirname "$BUILD_INFO_FILE")"
 
 JAVA_VERSION=$(java -version 2>&1 | head -n 1 | awk '{print $3}' | tr -d '"')
 PROJECT_VERSION=$(./build/mvn help:evaluate -N -Dexpression=project.version -Pspark-${SPARK_VER} -q -DforceStdout 2>/dev/null)
-RUST_VERSION=$(rustc --version | awk '{print $2}')
+RUST_VERSION=$(cargo --version | awk -F ' ' '{print $2}')
 
 {
   echo "spark.version=${SPARK_VER}"
