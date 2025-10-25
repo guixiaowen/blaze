@@ -27,6 +27,9 @@ RUN yum install -y centos-release-scl epel-release
 RUN sed -i "s/mirror.centos.org/vault.centos.org/g" /etc/yum.repos.d/*.repo
 RUN sed -i "s/^#.*baseurl=http/baseurl=https/g" /etc/yum.repos.d/*.repo
 RUN sed -i "s/^mirrorlist/#mirrorlist/g" /etc/yum.repos.d/*.repo
+RUN sed -i "s|^metalink=|#metalink=|g" /etc/yum.repos.d/epel.repo
+RUN sed -i "s|https://download.fedoraproject.org/pub/epel|https://archives.fedoraproject.org/pub/archive/epel|g" /etc/yum.repos.d/epel.repo
+RUN yum clean all && yum makecache
 RUN yum install -y libzip unzip openssl-devel
 
 # install gcc-11
@@ -36,7 +39,7 @@ RUN echo '. /opt/rh/devtoolset-11/enable' >> ~/.bashrc
 # install rust nightly toolchain
 RUN curl https://sh.rustup.rs > /rustup-init
 RUN chmod +x /rustup-init
-RUN /rustup-init -y --default-toolchain nightly-2023-08-01-x86_64-unknown-linux-gnu
+RUN /rustup-init -y --default-toolchain nightly-2025-05-09-x86_64-unknown-linux-gnu
 
 # install java
 RUN yum install -y java-1.8.0-openjdk java-1.8.0-openjdk-devel

@@ -27,13 +27,13 @@ import org.apache.auron.hadoop.fs.FSDataInputWrapper;
 import org.apache.auron.hadoop.fs.FSDataInputWrapper$;
 import org.apache.auron.hadoop.fs.FSDataOutputWrapper;
 import org.apache.auron.hadoop.fs.FSDataOutputWrapper$;
+import org.apache.auron.memory.OnHeapSpillManager;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.spark.SparkEnv;
 import org.apache.spark.TaskContext;
 import org.apache.spark.TaskContext$;
-import org.apache.spark.sql.auron.memory.OnHeapSpillManager;
-import org.apache.spark.sql.auron.memory.OnHeapSpillManager$;
+import org.apache.spark.sql.auron.memory.SparkOnHeapSpillManager$;
 import org.apache.spark.sql.auron.util.TaskContextHelper$;
 
 @SuppressWarnings("unused")
@@ -56,10 +56,6 @@ public class JniBridge {
         Thread.currentThread().setContextClassLoader(cl);
     }
 
-    public static String getSparkEnvConfAsString(String key) {
-        return SparkEnv.get().conf().get(key);
-    }
-
     public static Object getResource(String key) {
         return resourcesMap.remove(key);
     }
@@ -69,7 +65,7 @@ public class JniBridge {
     }
 
     public static OnHeapSpillManager getTaskOnHeapSpillManager() {
-        return OnHeapSpillManager$.MODULE$.current();
+        return SparkOnHeapSpillManager$.MODULE$.current();
     }
 
     public static boolean isTaskRunning() {
@@ -78,11 +74,6 @@ public class JniBridge {
             return true;
         }
         return !tc.isCompleted() && !tc.isInterrupted();
-    }
-
-    public static boolean isDriverSide() {
-        TaskContext tc = getTaskContext();
-        return tc == null;
     }
 
     public static FSDataInputWrapper openFileAsDataInputWrapper(FileSystem fs, String path) throws Exception {

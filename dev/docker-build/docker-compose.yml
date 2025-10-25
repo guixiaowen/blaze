@@ -19,7 +19,7 @@ version: "3"
 
 services:
   build-release:
-    build: ./centos7
+    build: ${BUILD_CONTEXT:-./centos7}
     volumes:
       - ~/.m2:/root/.m2:rw
       - ~/.sbt:/root/.sbt:rw
@@ -28,7 +28,7 @@ services:
       - ./../../:/auron:rw
       - ./../../target-docker:/auron/target:rw
       - ./../../target-docker/spark-extension-target:/auron/spark-extension/target:rw
-      - ./../../target-docker/spark-extension-shims-spark3-target:/auron/spark-extension-shims-spark3/target:rw
+      - ./../../target-docker/spark-extension-shims-spark-target:/auron/spark-extension-shims-spark/target:rw
       - ./../../target-docker/build-helper-proto-target:/auron/dev/mvn-build-helper/proto/target:rw
       - ./../../target-docker/build-helper-assembly-target:/auron/dev/mvn-build-helper/assembly/target:rw
     environment:

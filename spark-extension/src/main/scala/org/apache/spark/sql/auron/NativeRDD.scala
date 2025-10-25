@@ -29,11 +29,12 @@ import org.apache.spark.internal.Logging
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.catalyst.InternalRow
 
+import org.apache.auron.metric.SparkMetricNode
 import org.apache.auron.protobuf.PhysicalPlanNode
 
 class NativeRDD(
     @transient private val rddSparkContext: SparkContext,
-    val metrics: MetricNode,
+    val metrics: SparkMetricNode,
     private val rddPartitions: Array[Partition],
     private val rddPartitioner: Option[Partitioner],
     private val rddDependencies: Seq[Dependency[_]],
@@ -66,6 +67,27 @@ class NativeRDD(
     val computingNativePlan = nativePlanWrapper.plan(split, context)
     NativeHelper.executeNativePlan(computingNativePlan, metrics, split, Some(context))
   }
+}
+
+class EmptyNativeRDD(@transient private val rddSparkContext: SparkContext)
+    extends NativeRDD(
+      rddSparkContext = rddSparkContext,
+      metrics = SparkMetricNode(Map.empty, Seq(), None),
+      rddPartitions = Array.empty,
+      rddPartitioner = None,
+      rddDependencies = Seq.empty,
+      rddShuffleReadFull = false,
+      nativePlan = (_, _) => null,
+      friendlyName = "EmptyNativeRDD")
+    with Logging
+    with Serializable {
+
+  override protected def getPartitions: Array[Partition] = Array.empty
+
+  override def compute(split: Partition, context: TaskContext): Iterator[InternalRow] = {
+    throw new UnsupportedOperationException("empty RDD")
+  }
+
 }
 
 class NativePlanWrapper(var p: (Partition, TaskContext) => PhysicalPlanNode)

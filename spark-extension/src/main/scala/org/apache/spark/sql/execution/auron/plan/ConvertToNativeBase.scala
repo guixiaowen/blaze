@@ -21,8 +21,6 @@ import java.util.UUID
 import scala.collection.immutable.SortedMap
 
 import org.apache.spark.OneToOneDependency
-import org.apache.spark.sql.auron.JniBridge
-import org.apache.spark.sql.auron.MetricNode
 import org.apache.spark.sql.auron.NativeConverters
 import org.apache.spark.sql.auron.NativeHelper
 import org.apache.spark.sql.auron.NativeRDD
@@ -38,6 +36,8 @@ import org.apache.spark.sql.execution.metric.SQLMetric
 import org.apache.spark.sql.execution.metric.SQLMetrics
 import org.apache.spark.sql.types.StructType
 
+import org.apache.auron.jni.JniBridge
+import org.apache.auron.metric.SparkMetricNode
 import org.apache.auron.protobuf.FFIReaderExecNode
 import org.apache.auron.protobuf.PhysicalPlanNode
 import org.apache.auron.protobuf.Schema
@@ -63,7 +63,7 @@ abstract class ConvertToNativeBase(override val child: SparkPlan)
   override def doExecuteNative(): NativeRDD = {
     val inputRDD = child.execute()
     val numInputPartitions = inputRDD.getNumPartitions
-    val nativeMetrics = MetricNode(metrics, Nil)
+    val nativeMetrics = SparkMetricNode(metrics, Nil)
 
     new NativeRDD(
       sparkContext,
@@ -75,7 +75,7 @@ abstract class ConvertToNativeBase(override val child: SparkPlan)
       (partition, context) => {
         val inputRowIter = inputRDD.compute(partition, context)
         val resourceId = s"ConvertToNativeExec:${UUID.randomUUID().toString}"
-        JniBridge.resourcesMap.put(resourceId, new ArrowFFIExporter(inputRowIter, renamedSchema))
+        JniBridge.putResource(resourceId, new ArrowFFIExporter(inputRowIter, renamedSchema))
 
         PhysicalPlanNode
           .newBuilder()

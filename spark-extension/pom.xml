@@ -27,8 +27,15 @@
 
   <artifactId>spark-extension_${scalaVersion}</artifactId>
   <packaging>jar</packaging>
+  <name>Apache Auron Spark Extension ${scalaVersion}</name>
+  <description>Apache Auron Spark Extension Project</description>
 
   <dependencies>
+    <dependency>
+      <groupId>org.apache.auron</groupId>
+      <artifactId>auron-spark-ui_${scalaVersion}</artifactId>
+      <version>${project.version}</version>
+    </dependency>
     <dependency>
       <groupId>org.apache.auron</groupId>
       <artifactId>auron-core</artifactId>
@@ -80,6 +87,13 @@
     <dependency>
       <groupId>org.apache.arrow</groupId>
       <artifactId>arrow-vector</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>org.junit.jupiter</groupId>
+      <artifactId>junit-jupiter-api</artifactId>
+      <version>${junit.jupiter.version}</version>
+      <scope>test</scope>
     </dependency>
   </dependencies>
 
