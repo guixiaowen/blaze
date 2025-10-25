@@ -24,7 +24,8 @@ class AuronIcebergIntegrationSuite
 
   test("test iceberg integrate ") {
     withTable("local.db.t1") {
-      sql("create table local.db.t1 using iceberg PARTITIONED BY (part) as select 1 as c1, 2 as c2, 'test test' as part")
+      sql(
+        "create table local.db.t1 using iceberg PARTITIONED BY (part) as select 1 as c1, 2 as c2, 'test test' as part")
       val df = sql("select * from local.db.t1")
       checkAnswer(df, Seq(Row(1, 2, "test test")))
     }
