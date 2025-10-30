@@ -30,6 +30,8 @@ class PaimonConvertProvider extends AuronConvertProvider with Logging {
     AuronConverters.getBooleanConf("spark.auron.enable.paimon.scan", defaultValue = false)
   }
 
+
+
   override def isSupported(exec: SparkPlan): Boolean = {
     exec match {
       case e: HiveTableScanExec
