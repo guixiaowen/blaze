@@ -830,7 +830,7 @@ impl From<protobuf::ScalarFunction> for Arc<ScalarUDF> {
             ScalarFunction::Hex => spark_fun::math::hex(),
 
             ScalarFunction::Power => f::math::power(),
-            ScalarFunction::NaNvl => f::math::Nanvl(),
+            ScalarFunction::NaNvl => f::math::nanvl(),
 
             ScalarFunction::SparkExtFunctions => {
                 unreachable!()
