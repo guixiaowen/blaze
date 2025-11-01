@@ -86,8 +86,12 @@ import org.apache.spark.sql.hive.execution.auron.plan.NativeHiveTableScanBase
 import org.apache.spark.sql.internal.SQLConf
 import org.apache.spark.sql.types.LongType
 
+import org.apache.auron.configuration.AuronConfiguration
+import org.apache.auron.jni.AuronAdaptor
+import org.apache.auron.metric.SparkMetricNode
 import org.apache.auron.protobuf.EmptyPartitionsExecNode
 import org.apache.auron.protobuf.PhysicalPlanNode
+import org.apache.auron.spark.configuration.SparkAuronConfiguration
 import org.apache.auron.sparkver
 
 object AuronConverters extends Logging {
@@ -139,6 +143,10 @@ object AuronConverters extends Logging {
     getBooleanConf("spark.auron.enable.shuffleExchange", defaultValue = true)
 
   private val extConvertProviders = ServiceLoader.load(classOf[AuronConvertProvider]).asScala
+
+  private val sparkAuronConfig: AuronConfiguration =
+    AuronAdaptor.getInstance.getAuronConfiguration
+
   def extConvertSupported(exec: SparkPlan): Boolean = {
     extConvertProviders.exists(_.isSupported(exec))
   }
@@ -346,7 +354,11 @@ object AuronConverters extends Logging {
 
     } catch {
       case e @ (_: NotImplementedError | _: AssertionError | _: Exception) =>
-        logWarning(s"Falling back exec: ${exec.getClass.getSimpleName}: ${e.getMessage}")
+        if (log.isDebugEnabled()) {
+          logWarning(s"Falling back exec: ${exec.getClass.getSimpleName}: ${e.getMessage}", e)
+        } else {
+          logWarning(s"Falling back exec: ${exec.getClass.getSimpleName}: ${e.getMessage}")
+        }
         val neverConvertReason = e match {
           case _: AssertionError =>
             exec match {
@@ -502,7 +514,7 @@ object AuronConverters extends Logging {
 
     // force shuffled-hash join
     if (!requireOrdering
-      && AuronConf.FORCE_SHUFFLED_HASH_JOIN.booleanConf()
+      && sparkAuronConfig.getBoolean(SparkAuronConfiguration.FORCE_SHUFFLED_HASH_JOIN)
       && exec.children.forall(_.isInstanceOf[NativeSortBase])) {
       val (leftKeys, rightKeys, joinType, condition, left, right, isSkewJoin) =
         (
@@ -600,7 +612,7 @@ object AuronConverters extends Logging {
         getIsSkewJoinFromSHJ(exec))
 
     } catch {
-      case _ if AuronConf.FORCE_SHUFFLED_HASH_JOIN.booleanConf() =>
+      case _ if sparkAuronConfig.getBoolean(SparkAuronConfiguration.FORCE_SHUFFLED_HASH_JOIN) =>
         logWarning(
           "in forceShuffledHashJoin mode, hash joins are likely too run OOM because of " +
             "small on-heap memory configuration. to avoid this, we will fall back this " +
@@ -1089,12 +1101,12 @@ object AuronConverters extends Logging {
 
         new NativeRDD(
           sparkContext,
-          MetricNode(Map(), Nil),
+          SparkMetricNode(Map(), Nil),
           rddPartitions = partitions,
           rddPartitioner = None,
           rddDependencies = Nil,
           false,
-          (_partition, _taskContext) => {
+          (_, _) => {
             val nativeEmptyExec = EmptyPartitionsExecNode
               .newBuilder()
               .setNumPartitions(outputPartitioning.numPartitions)

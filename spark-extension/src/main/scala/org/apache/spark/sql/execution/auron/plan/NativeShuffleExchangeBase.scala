@@ -28,8 +28,6 @@ import org.apache.spark.{OneToOneDependency, Partitioner, RangePartitioner, Shuf
 import org.apache.spark.rdd.{PartitionPruningRDD, RDD}
 import org.apache.spark.serializer.Serializer
 import org.apache.spark.shuffle.ShuffleWriteProcessor
-import org.apache.spark.sql.auron.JniBridge
-import org.apache.spark.sql.auron.MetricNode
 import org.apache.spark.sql.auron.NativeConverters
 import org.apache.spark.sql.auron.NativeHelper
 import org.apache.spark.sql.auron.NativeRDD
@@ -50,6 +48,8 @@ import org.apache.spark.sql.internal.SQLConf
 import org.apache.spark.sql.types.ArrayType
 import org.apache.spark.util.{CompletionIterator, MutablePair}
 
+import org.apache.auron.jni.JniBridge
+import org.apache.auron.metric.SparkMetricNode
 import org.apache.auron.protobuf.{IpcReaderExecNode, PhysicalExprNode, PhysicalHashRepartition, PhysicalPlanNode, PhysicalRangeRepartition, PhysicalRepartition, PhysicalRoundRobinRepartition, PhysicalSingleRepartition, PhysicalSortExprNode, Schema, SortExecNode}
 
 abstract class NativeShuffleExchangeBase(
@@ -125,7 +125,7 @@ abstract class NativeShuffleExchangeBase(
     val shuffleHandle = shuffleDependency.shuffleHandle
     val rdd = doExecuteNonNative()
 
-    val nativeMetrics = MetricNode(
+    val nativeMetrics = SparkMetricNode(
       Map(),
       Nil,
       Some({
@@ -163,7 +163,7 @@ abstract class NativeShuffleExchangeBase(
         val ipcIterator = CompletionIterator[Object, Iterator[Object]](
           reader.readIpc(),
           taskContext.taskMetrics().mergeShuffleReadMetrics())
-        JniBridge.resourcesMap.put(jniResourceId, () => ipcIterator)
+        JniBridge.putResource(jniResourceId, () => ipcIterator)
 
         PhysicalPlanNode
           .newBuilder()
@@ -192,7 +192,7 @@ abstract class NativeShuffleExchangeBase(
 
     val nativeInputRDD = rdd.asInstanceOf[NativeRDD]
     val numPartitions = outputPartitioning.numPartitions
-    val nativeMetrics = MetricNode(
+    val nativeMetrics = SparkMetricNode(
       metrics,
       nativeInputRDD.metrics :: Nil,
       Some({

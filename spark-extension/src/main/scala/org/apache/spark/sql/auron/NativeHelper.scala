@@ -17,7 +17,9 @@
 package org.apache.spark.sql.auron
 
 import scala.collection.immutable.TreeMap
+import scala.collection.mutable.ArrayBuffer
 
+import org.apache.arrow.vector.types.pojo.Schema
 import org.apache.hadoop.security.UserGroupInformation
 import org.apache.spark.Partition
 import org.apache.spark.SparkConf
@@ -27,11 +29,20 @@ import org.apache.spark.TaskContext
 import org.apache.spark.internal.Logging
 import org.apache.spark.internal.config
 import org.apache.spark.sql.catalyst.InternalRow
+import org.apache.spark.sql.catalyst.expressions.UnsafeProjection
 import org.apache.spark.sql.execution.SparkPlan
+import org.apache.spark.sql.execution.auron.arrowio.util.ArrowUtils
+import org.apache.spark.sql.execution.auron.arrowio.util.ArrowUtils.ROOT_ALLOCATOR
+import org.apache.spark.sql.execution.auron.columnar.ColumnarHelper
 import org.apache.spark.sql.execution.metric.SQLMetric
 import org.apache.spark.sql.execution.metric.SQLMetrics
+import org.apache.spark.sql.types.StructType
+import org.apache.spark.util.CompletionIterator
 
+import org.apache.auron.jni.AuronAdaptor
+import org.apache.auron.metric.SparkMetricNode
 import org.apache.auron.protobuf.PhysicalPlanNode
+import org.apache.auron.spark.configuration.SparkAuronConfiguration
 
 object NativeHelper extends Logging {
   val currentUser: UserGroupInformation = UserGroupInformation.getCurrentUser
@@ -78,7 +89,7 @@ object NativeHelper extends Logging {
 
   def executeNativePlan(
       nativePlan: PhysicalPlanNode,
-      metrics: MetricNode,
+      metrics: SparkMetricNode,
       partition: Partition,
       context: Option[TaskContext]): Iterator[InternalRow] = {
 
@@ -88,7 +99,71 @@ object NativeHelper extends Logging {
     if (nativePlan == null) {
       return Iterator.empty
     }
-    AuronCallNativeWrapper(nativePlan, partition, context, metrics).getRowIterator
+    var auronCallNativeWrapper = new org.apache.auron.jni.AuronCallNativeWrapper(
+      ROOT_ALLOCATOR,
+      nativePlan,
+      metrics,
+      partition.index,
+      context.map(_.stageId()).getOrElse(0),
+      context.map(_.taskAttemptId().toInt).getOrElse(0),
+      NativeHelper.nativeMemory)
+
+    context.foreach(
+      _.addTaskCompletionListener[Unit]((_: TaskContext) => auronCallNativeWrapper.close()))
+    context.foreach(_.addTaskFailureListener((_, _) => auronCallNativeWrapper.close()))
+
+    val rowIterator = new Iterator[InternalRow] {
+      private var arrowSchema: Schema = _
+      private var schema: StructType = _
+      private var toUnsafe: UnsafeProjection = _
+      private val batchRows: ArrayBuffer[InternalRow] = ArrayBuffer()
+      private var batchCurRowIdx = 0
+
+      override def hasNext: Boolean = {
+        // if current batch is not empty, return true
+        if (batchCurRowIdx < batchRows.length) {
+          return true
+        }
+
+        // clear current batch
+        batchRows.clear()
+        batchCurRowIdx = 0
+
+        if (auronCallNativeWrapper.loadNextBatch(root => {
+            if (arrowSchema == null) {
+              arrowSchema = auronCallNativeWrapper.getArrowSchema
+              schema = ArrowUtils.fromArrowSchema(arrowSchema)
+              toUnsafe = UnsafeProjection.create(schema)
+            }
+            batchRows.append(
+              ColumnarHelper
+                .rootRowsIter(root)
+                .map(row => toUnsafe(row).copy().asInstanceOf[InternalRow])
+                .toSeq: _*)
+          })) {
+          return hasNext
+        }
+        // clear current batch
+        arrowSchema = null
+        batchRows.clear()
+        batchCurRowIdx = 0
+        false
+      }
+
+      override def next(): InternalRow = {
+        val batchRow = batchRows(batchCurRowIdx)
+        batchCurRowIdx += 1
+        batchRow
+      }
+    }
+
+    CompletionIterator[InternalRow, Iterator[InternalRow]](
+      rowIterator,
+      () -> {
+        synchronized {
+          auronCallNativeWrapper.close()
+        }
+      })
   }
 
   def getDefaultNativeMetrics(sc: SparkContext): Map[String, SQLMetric] = {
@@ -115,7 +190,8 @@ object NativeHelper extends Logging {
       "shuffle_write_total_time" -> nanoTimingMetric("Native.shuffle_write_total_time"),
       "shuffle_read_total_time" -> nanoTimingMetric("Native.shuffle_read_total_time"))
 
-    if (AuronConf.INPUT_BATCH_STATISTICS_ENABLE.booleanConf()) {
+    if (AuronAdaptor.getInstance.getAuronConfiguration.getBoolean(
+        SparkAuronConfiguration.INPUT_BATCH_STATISTICS_ENABLE)) {
       metrics ++= TreeMap(
         "input_batch_count" -> metric("Native.input_batches"),
         "input_row_count" -> metric("Native.input_rows"),

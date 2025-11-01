@@ -80,9 +80,17 @@ import org.apache.spark.unsafe.types.UTF8String
 import org.apache.spark.util.Utils
 
 import org.apache.auron.{protobuf => pb}
+import org.apache.auron.configuration.AuronConfiguration
+import org.apache.auron.jni.AuronAdaptor
 import org.apache.auron.protobuf.PhysicalExprNode
+import org.apache.auron.spark.configuration.SparkAuronConfiguration
 
 object NativeConverters extends Logging {
+
+  private val sparkAuronConfig: AuronConfiguration =
+    AuronAdaptor.getInstance.getAuronConfiguration
+  def udfEnabled: Boolean =
+    AuronConverters.getBooleanConf("spark.auron.udf.enabled", defaultValue = true)
   def udfJsonEnabled: Boolean =
     AuronConverters.getBooleanConf("spark.auron.udf.UDFJson.enabled", defaultValue = true)
   def udfBrickHouseEnabled: Boolean =
@@ -452,7 +460,7 @@ object NativeConverters extends Logging {
           if (cast.child.dataType == StringType &&
             (cast.dataType.isInstanceOf[NumericType] || cast.dataType
               .isInstanceOf[BooleanType]) &&
-            AuronConf.CAST_STRING_TRIM_ENABLE.booleanConf()) {
+            sparkAuronConfig.getBoolean(SparkAuronConfiguration.CAST_STRING_TRIM_ENABLE)) {
             // converting Cast(str as num) to StringTrim(Cast(str as num)) if enabled
             StringTrim(cast.child)
           } else {
@@ -831,9 +839,11 @@ object NativeConverters extends Logging {
       case Length(arg) if arg.dataType == StringType =>
         buildScalarFunction(pb.ScalarFunction.CharacterLength, arg :: Nil, IntegerType)
 
-      case e: Lower if AuronConf.CASE_CONVERT_FUNCTIONS_ENABLE.booleanConf() =>
+      case e: Lower
+          if sparkAuronConfig.getBoolean(SparkAuronConfiguration.CASE_CONVERT_FUNCTIONS_ENABLE) =>
         buildExtScalarFunction("StringLower", e.children, e.dataType)
-      case e: Upper if AuronConf.CASE_CONVERT_FUNCTIONS_ENABLE.booleanConf() =>
+      case e: Upper
+          if sparkAuronConfig.getBoolean(SparkAuronConfiguration.CASE_CONVERT_FUNCTIONS_ENABLE) =>
         buildExtScalarFunction("StringUpper", e.children, e.dataType)
 
       case e: StringTrim =>
@@ -846,6 +856,8 @@ object NativeConverters extends Logging {
         buildExtScalarFunction("NullIf", left :: right :: Nil, e.dataType)
       case Md5(_1) =>
         buildScalarFunction(pb.ScalarFunction.MD5, Seq(unpackBinaryTypeCast(_1)), StringType)
+      case Reverse(_1) =>
+        buildScalarFunction(pb.ScalarFunction.Reverse, Seq(unpackBinaryTypeCast(_1)), StringType)
       case Sha2(_1, Literal(224, _)) =>
         buildExtScalarFunction("Sha224", Seq(unpackBinaryTypeCast(_1)), StringType)
       case Sha2(_1, Literal(0, _)) =>
@@ -860,7 +872,8 @@ object NativeConverters extends Logging {
         buildExtScalarFunction("Murmur3Hash", children, IntegerType)
       case XxHash64(children, 42L) =>
         buildExtScalarFunction("XxHash64", children, LongType)
-
+      case e: Pow =>
+        buildScalarFunction(pb.ScalarFunction.Power, e.children, e.dataType)
       case Year(child) => buildExtScalarFunction("Year", child :: Nil, IntegerType)
       case Month(child) => buildExtScalarFunction("Month", child :: Nil, IntegerType)
       case DayOfMonth(child) => buildExtScalarFunction("Day", child :: Nil, IntegerType)
@@ -928,6 +941,11 @@ object NativeConverters extends Logging {
       case e: Coalesce =>
         val children = e.children.map(Cast(_, e.dataType))
         buildScalarFunction(pb.ScalarFunction.Coalesce, children, e.dataType)
+
+      case e: StringLPad =>
+        buildScalarFunction(pb.ScalarFunction.Lpad, e.children, StringType)
+      case e: StringRPad =>
+        buildScalarFunction(pb.ScalarFunction.Rpad, e.children, StringType)
 
       case e @ If(predicate, trueValue, falseValue) =>
         val castedTrueValue = trueValue match {
@@ -1154,7 +1172,7 @@ object NativeConverters extends Logging {
         }
 
         // fallback to UDAF
-        if (AuronConf.UDAF_FALLBACK_ENABLE.booleanConf()) {
+        if (sparkAuronConfig.getBoolean(SparkAuronConfiguration.UDAF_FALLBACK_ENABLE)) {
           udaf match {
             case _: DeclarativeAggregate =>
             case _: TypedImperativeAggregate[_] =>
@@ -1192,9 +1210,8 @@ object NativeConverters extends Logging {
               .setInputSchema(NativeConverters.convertSchema(paramsSchema)))
           aggBuilder.addAllChildren(convertedChildren.keys.asJava)
         } else {
-          throw new NotImplementedError(
-            s"unsupported aggregate expression: (${e.getClass})," +
-              s" set ${AuronConf.UDAF_FALLBACK_ENABLE.key} true to enable UDAF fallbacking")
+          throw new NotImplementedError(s"Unsupported aggregate expression: (${e.getClass})," +
+            s" set ${SparkAuronConfiguration.UDAF_FALLBACK_ENABLE.key} to true to enable UDAF fallbacking.")
         }
 
     }
