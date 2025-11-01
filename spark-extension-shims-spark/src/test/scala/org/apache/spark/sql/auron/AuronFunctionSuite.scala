@@ -320,7 +320,7 @@ class AuronFunctionSuite
     assert(row.isNullAt(0) && row.isNullAt(1) && row.isNullAt(2))
   }
 
-  test("pi: returns pi") {
+  test("nanvl NaN") {
     withTable("t1") {
       sql(
         "create table t1 using parquet as select 'NaN'" +
