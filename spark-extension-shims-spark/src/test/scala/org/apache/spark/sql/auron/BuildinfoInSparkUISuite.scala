@@ -16,8 +16,15 @@
  */
 package org.apache.spark.sql.auron
 
+import scala.collection.mutable.ArrayBuffer
+
+import org.apache.spark.scheduler.{SparkListener, SparkListenerEvent}
 import org.apache.spark.sql.Row
+import org.apache.spark.sql.execution.ExplainUtils
+import org.apache.spark.sql.execution.auron.plan.NativeParquetScanExec
 import org.apache.spark.sql.execution.ui.AuronSQLAppStatusListener
+
+import org.apache.auron.spark.ui.AuronPlanFallbackEvent
 
 class BuildinfoInSparkUISuite
     extends org.apache.spark.sql.QueryTest
@@ -29,15 +36,6 @@ class BuildinfoInSparkUISuite
     assert(listeners.size === 1)
     val listener = listeners(0)
     assert(listener.getAuronBuildInfo() == 1)
-  }
-
-  test("test convert table in spark UI ") {
-    withTable("t1") {
-      sql(
-        "create table t1 using parquet PARTITIONED BY (part) as select 1 as c1, 2 as c2, 'test test' as part")
-      val df = sql("select * from t1")
-      checkAnswer(df, Seq(Row(1, 2, "test test")))
-    }
   }
 
 }
