@@ -319,4 +319,19 @@ class AuronFunctionSuite
     val row = df.collect().head
     assert(row.isNullAt(0) && row.isNullAt(1) && row.isNullAt(2))
   }
+
+  test("pi: returns pi") {
+    withTable("t1") {
+      sql("create table t1 using parquet as select 2 as base, 3 as exponent")
+      val functions =
+        """
+          |select
+          |  pi(), base
+          |from t1
+            """.stripMargin
+
+      val df = sql(functions)
+      checkAnswer(df, Seq(Row(3.141592653589793, 2)))
+    }
+  }
 }

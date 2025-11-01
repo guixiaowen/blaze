@@ -381,8 +381,13 @@ object NativeConverters extends Logging {
 
     val buildBinaryExprNode: (Expression, Expression, String) => PhysicalExprNode =
       this.buildBinaryExprNode(_, _, _, isPruningExpr, fallback)
-    val buildScalarFunction: (pb.ScalarFunction, Seq[Expression], DataType) => PhysicalExprNode =
+    val buildScalarFunction
+        : (pb.ScalarFunction, Seq[Expression], DataType) => PhysicalExprNode = {
       this.buildScalarFunctionNode(_, _, _, isPruningExpr, fallback)
+    }
+    val buildNoArgsScalarFunction: (pb.ScalarFunction, DataType) => PhysicalExprNode = {
+      this.buildNoArgsScalarFunctionNode(_, _, isPruningExpr, fallback)
+    }
     val buildExtScalarFunction: (String, Seq[Expression], DataType) => PhysicalExprNode =
       this.buildExtScalarFunctionNode(_, _, _, isPruningExpr, fallback)
 
@@ -822,7 +827,8 @@ object NativeConverters extends Logging {
       case e: Factorial =>
         buildScalarFunction(pb.ScalarFunction.Factorial, e.children, e.dataType)
       case e: Hex => buildScalarFunction(pb.ScalarFunction.Hex, e.children, e.dataType)
-
+      case e: Pi =>
+        buildNoArgsScalarFunction(pb.ScalarFunction.Pi, e.dataType)
       case e: Round =>
         e.scale match {
           case Literal(n: Int, _) =>
@@ -1263,6 +1269,20 @@ object NativeConverters extends Logging {
           .setFun(fn)
           .addAllArgs(
             args.map(expr => convertExprWithFallback(expr, isPruningExpr, fallback)).asJava)
+          .setReturnType(convertDataType(dataType)))
+    }
+
+  def buildNoArgsScalarFunctionNode(
+      fn: pb.ScalarFunction,
+      dataType: DataType,
+      isPruningExpr: Boolean,
+      fallback: Expression => pb.PhysicalExprNode): pb.PhysicalExprNode =
+    buildExprNode {
+      _.setScalarFunction(
+        pb.PhysicalScalarFunctionNode
+          .newBuilder()
+          .setName(fn.name())
+          .setFun(fn)
           .setReturnType(convertDataType(dataType)))
     }
 

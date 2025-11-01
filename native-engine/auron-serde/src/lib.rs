@@ -29,6 +29,7 @@ pub mod protobuf {
 
 pub mod error;
 pub mod from_proto;
+mod from_proto;
 
 pub(crate) fn proto_error<S: Into<String>>(message: S) -> PlanSerDeError {
     PlanSerDeError::General(message.into())
