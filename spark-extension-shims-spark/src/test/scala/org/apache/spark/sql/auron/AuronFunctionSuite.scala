@@ -322,16 +322,16 @@ class AuronFunctionSuite
 
   test("pi: returns pi") {
     withTable("t1") {
-      sql("create table t1 using parquet as select 2 as base, 3 as exponent")
+      sql("create table t1 using parquet as select 'base' as base, 3 as exponent")
       val functions =
         """
           |select
-          |  pi(), base
+          |  nanvl(cast(base as double), 123), base
           |from t1
             """.stripMargin
 
       val df = sql(functions)
-      checkAnswer(df, Seq(Row(3.141592653589793, 2)))
+      checkAnswer(df, Seq(Row(123.0, "base")))
     }
   }
 }
