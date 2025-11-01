@@ -328,12 +328,12 @@ class AuronFunctionSuite
       val functions =
         """
           |select
-          |  nanvl(base, 123), base
+          |  nanvl(base, 123), base, nanvl(exponent, 123)
           |from t1
             """.stripMargin
 
       val df = sql(functions)
-      checkAnswer(df, Seq(Row(123.0, "NaN")))
+      checkAnswer(df, Seq(Row(123.0, "NaN", 3)))
     }
   }
 }
