@@ -21,7 +21,6 @@ import org.apache.spark.sql.auron.AuronConverters.getBooleanConf
 import org.apache.spark.sql.auron.{AuronConvertProvider, AuronConverters}
 import org.apache.spark.sql.execution.SparkPlan
 import org.apache.spark.sql.execution.datasources.v2.BatchScanExec
-import org.apache.spark.sql.hive.execution.HiveTableScanExec
 
 class IcebergConvertProvider  extends AuronConvertProvider with Logging{
 
@@ -42,5 +41,7 @@ class IcebergConvertProvider  extends AuronConvertProvider with Logging{
     }
   }
 
-  override def convert(exec: SparkPlan): SparkPlan = ???
+  override def convert(exec: SparkPlan): SparkPlan = {
+    exec
+  }
 }
