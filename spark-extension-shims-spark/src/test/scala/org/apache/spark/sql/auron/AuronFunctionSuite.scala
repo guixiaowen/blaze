@@ -322,18 +322,21 @@ class AuronFunctionSuite
 
   test("nanvl NaN") {
     withTable("t1") {
-      sql(
-        "create table t1 using parquet as select 'NaN'" +
-          " as base, 3 as exponent")
+      sql("create table test_na_nvl using parquet as select cast(5.0 as double) as a, 'c' as b")
       val functions =
         """
           |select
-          |  nanvl(base, 123), base, nanvl(exponent, 123)
-          |from t1
-            """.stripMargin
-
+          |   a,
+          |   nanvl(5.0, null),
+          |   nanvl(a, null),
+          |   nanvl(null, a),
+          |   nanvl(null, cast('NaN' as double)),
+          |   nanvl(cast('NaN' as double), a),
+          |   nanvl(1, b)
+          |from test_na_nvl
+        """.stripMargin
       val df = sql(functions)
-      checkAnswer(df, Seq(Row(123.0, "NaN", 3)))
+      checkAnswer(df, Seq(Row(5.0, 5.0, null, null, 5.0, 1.0)))
     }
   }
 }
