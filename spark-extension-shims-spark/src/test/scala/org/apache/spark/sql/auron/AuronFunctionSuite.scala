@@ -319,4 +319,38 @@ class AuronFunctionSuite
     val row = df.collect().head
     assert(row.isNullAt(0) && row.isNullAt(1) && row.isNullAt(2))
   }
+
+  test("test function nvl2") {
+    withTable("t1") {
+      sql(
+        "create table t1 using parquet as select 'base'" +
+          " as base, 3 as exponent")
+      val functions =
+        """
+          |select
+          |  nvl2(null, base, exponent), nvl2(4, base, exponent)
+          |from t1
+                      """.stripMargin
+
+      val df = sql(functions)
+      checkAnswer(df, Seq(Row("base", 3)))
+    }
+  }
+
+  test("test function nvl") {
+    withTable("t1") {
+      sql(
+        "create table t1 using parquet as select 'base'" +
+          " as base, 3 as exponent")
+      val functions =
+        """
+          |select
+          |  nvl(null, base), base, nvl(4, exponent)
+          |from t1
+                    """.stripMargin
+
+      val df = sql(functions)
+      checkAnswer(df, Seq(Row("base", "base", 4)))
+    }
+  }
 }

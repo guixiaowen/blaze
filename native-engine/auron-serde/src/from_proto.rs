@@ -784,6 +784,8 @@ impl From<protobuf::ScalarFunction> for Arc<ScalarUDF> {
             ScalarFunction::Rtrim => f::string::rtrim(),
             ScalarFunction::ToTimestamp => f::datetime::to_timestamp(),
             ScalarFunction::NullIf => f::core::nullif(),
+            ScalarFunction::Nvl2 => f::core::nvl2(),
+            ScalarFunction::Nvl => f::core::nvl(),
             ScalarFunction::DatePart => f::datetime::date_part(),
             ScalarFunction::DateTrunc => f::datetime::date_trunc(),
             ScalarFunction::Md5 => f::crypto::md5(),

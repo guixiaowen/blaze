@@ -792,6 +792,8 @@ object NativeConverters extends Logging {
         buildScalarFunction(pb.ScalarFunction.Log2, e.children.map(nullIfNegative), e.dataType)
       case e: Log10 =>
         buildScalarFunction(pb.ScalarFunction.Log10, e.children.map(nullIfNegative), e.dataType)
+      case e: Nvl2 =>
+        buildScalarFunction(pb.ScalarFunction.Nvl2, e.children, e.dataType)
       case e: Floor if !e.dataType.isInstanceOf[DecimalType] =>
         if (e.child.dataType.isInstanceOf[LongType]) {
           convertExprWithFallback(e.child, isPruningExpr, fallback)
@@ -874,6 +876,9 @@ object NativeConverters extends Logging {
         buildExtScalarFunction("XxHash64", children, LongType)
       case e: Pow =>
         buildScalarFunction(pb.ScalarFunction.Power, e.children, e.dataType)
+      case e: Nvl =>
+        buildScalarFunction(pb.ScalarFunction.Nvl, e.children, e.dataType)
+
       case Year(child) => buildExtScalarFunction("Year", child :: Nil, IntegerType)
       case Month(child) => buildExtScalarFunction("Month", child :: Nil, IntegerType)
       case DayOfMonth(child) => buildExtScalarFunction("Day", child :: Nil, IntegerType)
