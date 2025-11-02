@@ -819,6 +819,8 @@ object NativeConverters extends Logging {
           }
         }
       case e: Expm1 => buildScalarFunction(pb.ScalarFunction.Expm1, e.children, e.dataType)
+      case e: Contains =>
+        buildScalarFunction(pb.ScalarFunction.Contains, e.children, e.dataType)
       case e: Factorial =>
         buildScalarFunction(pb.ScalarFunction.Factorial, e.children, e.dataType)
       case e: Hex => buildScalarFunction(pb.ScalarFunction.Hex, e.children, e.dataType)
