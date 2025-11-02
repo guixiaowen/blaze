@@ -319,4 +319,30 @@ class AuronFunctionSuite
     val row = df.collect().head
     assert(row.isNullAt(0) && row.isNullAt(1) && row.isNullAt(2))
   }
+
+  test("test function FindInSet") {
+    withTable("t1") {
+      sql(
+        "create table t1_find_in_set using parquet as select 'ab' as a, 'b' as b, '' as c, 'def' as d")
+
+      val functions =
+        """
+          |select
+          |   find_in_set(a, 'ab'),
+          |   find_in_set(b, 'a,b'),
+          |   find_in_set(a, 'abc,b,ab,c,def'),
+          |   find_in_set(a, 'ab,abc,b,ab,c,def'),
+          |   find_in_set(a, ',,,ab,abc,b,ab,c,def'),
+          |   find_in_set(c, ',ab,abc,b,ab,c,def'),
+          |   find_in_set(a, '数据砖头,abc,b,ab,c,def'),
+          |   find_in_set(d, '数据砖头,abc,b,ab,c,def'),
+          |   find_in_set(d, null)
+          |from t1_find_in_set
+        """.stripMargin
+
+      val df = sql(functions)
+      df.show()
+      checkAnswer(df, Seq(Row(1, 2, 3, 1, 4, 1, 4, 6, null)))
+    }
+  }
 }

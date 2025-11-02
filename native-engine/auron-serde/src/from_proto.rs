@@ -813,6 +813,7 @@ impl From<protobuf::ScalarFunction> for Arc<ScalarUDF> {
             ScalarFunction::Rpad => f::unicode::rpad(),
             ScalarFunction::SplitPart => f::string::split_part(),
             ScalarFunction::StartsWith => f::string::starts_with(),
+            ScalarFunction::FindInSet => f::unicode::find_in_set(),
             ScalarFunction::Strpos => f::unicode::strpos(),
             ScalarFunction::Substr => f::unicode::substr(),
             // ScalarFunction::ToHex => f::string::to_hex(),

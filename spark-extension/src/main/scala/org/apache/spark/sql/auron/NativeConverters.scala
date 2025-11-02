@@ -832,6 +832,8 @@ object NativeConverters extends Logging {
         }
 
       case e: Signum => buildScalarFunction(pb.ScalarFunction.Signum, e.children, e.dataType)
+      case e: FindInSet =>
+        buildScalarFunction(pb.ScalarFunction.FindInSet, e.children, e.dataType)
       case e: Abs if e.dataType.isInstanceOf[FloatType] || e.dataType.isInstanceOf[DoubleType] =>
         buildScalarFunction(pb.ScalarFunction.Abs, e.children, e.dataType)
       case e: OctetLength =>
