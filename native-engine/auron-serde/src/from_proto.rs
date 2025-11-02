@@ -786,6 +786,7 @@ impl From<protobuf::ScalarFunction> for Arc<ScalarUDF> {
             ScalarFunction::NullIf => f::core::nullif(),
             ScalarFunction::DatePart => f::datetime::date_part(),
             ScalarFunction::DateTrunc => f::datetime::date_trunc(),
+
             ScalarFunction::Md5 => f::crypto::md5(),
             // ScalarFunction::Sha224 => f::crypto::sha224(),
             // ScalarFunction::Sha256 => f::crypto::sha256(),
@@ -819,6 +820,7 @@ impl From<protobuf::ScalarFunction> for Arc<ScalarUDF> {
             ScalarFunction::ToTimestampMicros => f::datetime::to_timestamp_micros(),
             ScalarFunction::ToTimestampSeconds => f::datetime::to_timestamp_seconds(),
             ScalarFunction::Now => f::datetime::now(),
+            ScalarFunction::MakeDate => f::datetime::make_date(),
             ScalarFunction::Translate => f::unicode::translate(),
             ScalarFunction::RegexpMatch => f::regex::regexp_match(),
             ScalarFunction::Coalesce => f::core::coalesce(),
