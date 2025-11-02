@@ -792,6 +792,12 @@ object NativeConverters extends Logging {
         buildScalarFunction(pb.ScalarFunction.Log2, e.children.map(nullIfNegative), e.dataType)
       case e: Log10 =>
         buildScalarFunction(pb.ScalarFunction.Log10, e.children.map(nullIfNegative), e.dataType)
+      case e: SubstringIndex =>
+        buildScalarFunction(
+          pb.ScalarFunction.SubstringIndex,
+          e.children.map(nullIfNegative),
+          e.dataType)
+
       case e: Floor if !e.dataType.isInstanceOf[DecimalType] =>
         if (e.child.dataType.isInstanceOf[LongType]) {
           convertExprWithFallback(e.child, isPruningExpr, fallback)

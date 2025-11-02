@@ -804,6 +804,7 @@ impl From<protobuf::ScalarFunction> for Arc<ScalarUDF> {
             ScalarFunction::InitCap => f::unicode::initcap(),
             ScalarFunction::Left => f::unicode::left(),
             ScalarFunction::Lpad => f::unicode::lpad(),
+            ScalarFunction::SubstringIndex => f::unicode::substr_index(),
             ScalarFunction::Random => f::math::random(),
             ScalarFunction::RegexpReplace => f::regex::regexp_replace(),
             ScalarFunction::Repeat => f::string::repeat(),
