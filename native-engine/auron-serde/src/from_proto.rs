@@ -822,6 +822,7 @@ impl From<protobuf::ScalarFunction> for Arc<ScalarUDF> {
             ScalarFunction::Translate => f::unicode::translate(),
             ScalarFunction::RegexpMatch => f::regex::regexp_match(),
             ScalarFunction::Coalesce => f::core::coalesce(),
+            ScalarFunction::Least => f::core::least(),
 
             // -- datafusion-spark functions
             // math functions

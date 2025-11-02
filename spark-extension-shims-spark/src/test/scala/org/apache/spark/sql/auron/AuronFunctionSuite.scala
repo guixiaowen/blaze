@@ -16,6 +16,8 @@
  */
 package org.apache.spark.sql.auron
 
+import java.text.SimpleDateFormat
+
 import org.apache.spark.sql.Row
 import org.apache.spark.sql.execution.adaptive.AdaptiveSparkPlanHelper
 
@@ -318,5 +320,68 @@ class AuronFunctionSuite
     val df = sql("select pow(null, 2), power(2, null), pow(null, null)")
     val row = df.collect().head
     assert(row.isNullAt(0) && row.isNullAt(1) && row.isNullAt(2))
+  }
+
+  test("test function least") {
+    withTable("t1") {
+      sql(
+        "create table test_least using parquet as select 1 as c1, 2 as c2, 'a' as c3, 'b' as c4, 'c' as c5")
+
+      val maxValue = Long.MaxValue
+      val minValue = Long.MinValue
+
+      val dateStringMin = "2015-01-01 08:00:00"
+      val dateStringMax = "2015-01-01 11:00:00"
+      var format = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss")
+      val dateTimeStampMin = format.parse(dateStringMin).getTime
+      val dateTimeStampMax = format.parse(dateStringMax).getTime
+      format = new SimpleDateFormat("yyyy-MM-dd")
+      val dateString = "2015-01-01"
+      val date = format.parse(dateString)
+
+      val functions =
+        s"""
+          |select
+          |    least(c4, c3, c5),
+          |    least(c1, c2, 1),
+          |    least(c1, c2, -1),
+          |    least(c4, c5, c3, c3, 'a'),
+          |    least(null, null),
+          |    least(c4, c3, c5, null),
+          |    least(-1.0, 2.5),
+          |    least(-1.0, 2),
+          |    least(-1.0f, 2.5f),
+          |    least(cast(1 as byte), cast(2 as byte)),
+          |    least('abc', 'aaaa'),
+          |    least(true, false),
+          |    least(cast("2015-01-01" as date), cast("2015-07-01" as date)),
+          |    least(${dateTimeStampMin}, ${dateTimeStampMax}),
+          |    least(${minValue}, ${maxValue})
+          |from
+          |    test_least
+        """.stripMargin
+
+      val df = sql(functions)
+
+      checkAnswer(
+        df,
+        Seq(
+          Row(
+            "a",
+            1,
+            -1,
+            "a",
+            null,
+            "a",
+            -1.0,
+            -1.0,
+            -1.0f,
+            1,
+            "aaaa",
+            false,
+            date,
+            dateTimeStampMin,
+            minValue)))
+    }
   }
 }
