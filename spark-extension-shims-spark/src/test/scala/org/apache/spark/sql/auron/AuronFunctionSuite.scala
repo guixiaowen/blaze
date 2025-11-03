@@ -536,4 +536,28 @@ class AuronFunctionSuite
       checkAnswer(df, Seq(Row("base", "base", 4)))
     }
   }
+
+  test("test function Levenshtein") {
+    withTable("t1") {
+      sql(
+        "create table test_levenshtein using parquet as select '' as a, 'abc' as b, 'kitten' as c, 'frog' as d, '千世' as i, '世界千世' as j")
+      val functions =
+        """
+          |select
+          |   levenshtein(null, a),
+          |   levenshtein(a, null),
+          |   levenshtein(a, a),
+          |   levenshtein(b, b),
+          |   levenshtein(c, 'sitting'),
+          |   levenshtein(d, 'fog'),
+          |   levenshtein(i, 'fog'),
+          |   levenshtein(j, '大a界b')
+          |from test_levenshtein
+        """.stripMargin
+
+      val df = sql(functions)
+      df.show()
+      checkAnswer(df, Seq(Row(null, null, 0, 0, 3, 1, 3, 4)))
+    }
+  }
 }
