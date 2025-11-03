@@ -323,17 +323,44 @@ class AuronFunctionSuite
   test("test function substr_index") {
     withTable("t1") {
       sql(
-        "create table t1 using parquet as select 'www.apache.org'" +
-          " as base, 3 as exponent")
+        "create table t1_sub_string_Iindex using parquet as select 'www.apache.org' as a, '大千世界大千世界' as b, 'www||apache||org' as c")
       val functions =
         """
           |select
-          |  substring_index(base, '.', 2), base
-          |from t1
-                  """.stripMargin
+          |   substring_index(a, '.', '3'),
+          |   substring_index(a, '.', '2'),
+          |   substring_index(a, '.', '1'),
+          |   substring_index(a, '.', '0'),
+          |   substring_index(a, '.', '-3'),
+          |   substring_index(a, '.', '-2'),
+          |   substring_index(a, '.', '-1'),
+          |   substring_index(null, '.', '-1'),
+          |   substring_index("", '.', '-2'),
+          |   substring_index(null, '.', -2),
+          |   substring_index(a, null, '-2'),
+          |   substring_index('大千世界大千世界', '千', '2'),
+          |   substring_index(c, '||', '2')
+          |from t1_sub_string_Iindex;
+        """.stripMargin
 
       val df = sql(functions)
-      checkAnswer(df, Seq(Row("www.apache", "www.apache.org")))
+      df.show()
+
+      checkAnswer(
+        df,
+        Seq(
+          Row(
+            "www.apache.org",
+            "www.apache",
+            "www",
+            "www.apache.org",
+            "apache.org",
+            "org",
+            null,
+            null,
+            null,
+            "大千世界大",
+            "www||apache")))
     }
   }
 }
