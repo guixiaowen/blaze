@@ -39,9 +39,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        iceberg: [ "1.9" ]
-        javaver: [ "11", "17"]
-        scalaver: [ "2.12" ]
+        iceberg: [ "1.10.1" ]
+        javaver: [ "17"]
+        scalaver: [ "2.12", "2.13"" ]
         module: [ "thirdparty/auron-iceberg" ]
         sparkver: [ "spark-3.4", "spark-3.5" ]
 
