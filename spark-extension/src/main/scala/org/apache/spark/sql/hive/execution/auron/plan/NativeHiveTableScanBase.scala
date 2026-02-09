@@ -49,6 +49,7 @@ abstract class NativeHiveTableScanBase(basedHiveScan: HiveTableScanExec)
     extends LeafExecNode
     with NativeSupports {
 
+
   override lazy val metrics: Map[String, SQLMetric] =
     NativeHelper.getNativeFileScanMetrics(sparkContext)
 
