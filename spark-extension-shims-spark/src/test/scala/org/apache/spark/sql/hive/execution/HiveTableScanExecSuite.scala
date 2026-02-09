@@ -14,21 +14,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.auron.iceberg
+package org.apache.spark.sql.hive.execution
 
-import org.apache.spark.sql.Row
+import org.apache.spark.sql.AuronQueryTest
+import org.apache.spark.sql.execution.auron.plan.NativeTakeOrderedExec
 
-class AuronIcebergIntegrationSuite
-    extends org.apache.spark.sql.QueryTest
-    with BaseAuronIcebergSuite {
+class HiveTableScanExecSuite extends AuronQueryTest with BaseAuronHiveSuite {
 
-  test("test iceberg integrate ") {
-    withTable("local.db.t1") {
-      sql(
-        "create table local.db.t1 PARTITIONED BY (part) as select 1 as c1, 2 as c2, 'test test' as part")
-      val df = sql("select * from local.db.t1")
-      checkAnswer(df, Seq(Row(1, 2, "test test")))
-    }
+  test("HiveTableScanExec to native") {
+    spark.sql("create table t1 (a string)")
+    spark.sql("insert into t1 values(1)")
+    val df = spark.sql("select * from t1")
+    val plan = df.queryExecution.executedPlan
+    assert(collect(plan) { case e: NativeTakeOrderedExec =>
+      e
+    }.size == 1)
+//    withTempView("t1") {
+//    }
   }
 
 }
