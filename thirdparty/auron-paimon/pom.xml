@@ -34,10 +34,22 @@
       <groupId>org.apache.auron</groupId>
       <artifactId>spark-extension_${scalaVersion}</artifactId>
       <version>${project.version}</version>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.auron</groupId>
+      <artifactId>spark-extension-shims-spark_${scalaVersion}</artifactId>
+      <version>${project.version}</version>
+      <scope>provided</scope>
     </dependency>
     <dependency>
       <groupId>org.apache.paimon</groupId>
       <artifactId>paimon-core</artifactId>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.paimon</groupId>
+      <artifactId>paimon-spark-${shortSparkVersion}</artifactId>
       <scope>provided</scope>
     </dependency>
     <dependency>
@@ -49,6 +61,21 @@
       <groupId>org.apache.spark</groupId>
       <artifactId>spark-hive_${scalaVersion}</artifactId>
       <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.spark</groupId>
+      <artifactId>spark-sql_${scalaVersion}</artifactId>
+      <type>test-jar</type>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.spark</groupId>
+      <artifactId>spark-core_${scalaVersion}</artifactId>
+      <type>test-jar</type>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.spark</groupId>
+      <artifactId>spark-catalyst_${scalaVersion}</artifactId>
+      <type>test-jar</type>
     </dependency>
   </dependencies>
 </project>
