@@ -17,6 +17,7 @@
 package org.apache.auron
 
 import java.io.File
+
 import org.apache.commons.io.FileUtils
 import org.apache.spark.{SparkConf, SparkContext, SparkFunSuite}
 import org.apache.spark.sql.SparkSession
@@ -50,27 +51,28 @@ trait BaseAuronPaimonSQLSuite extends SparkFunSuite with BeforeAndAfterAll {
 }
 
 object TestAuronHive
-  extends TestHiveContext(
-    new SparkContext(
-      System.getProperty("spark.sql.test.master", "local[1]"),
-      "TestSQLContext",
-      new SparkConf()
-        .set("spark.sql.test", "")
-        .set("spark.sql.extensions", "org.apache.spark.sql.auron.AuronSparkSessionExtension," +
-          "org.apache.paimon.spark.extensions.PaimonSparkSessionExtensions")
-        .set(
-          "spark.shuffle.manager",
-          "org.apache.spark.sql.execution.auron.shuffle.AuronShuffleManager")
-        .set("spark.memory.offHeap.enabled", "false")
-        .set("spark.auron.enable", "true")
-        .set("spark.ui.enabled", "false")
-        .set(
-          "spark.sql.warehouse.dir",
-          getClass.getResource("/").getPath + "auron-tests-workdir/spark-warehouse")
-        .set("spark.auron.udf.singleChildFallback.enabled", "false")
-        .set("spark.sql.catalog.paimon.warehouse", getClass.getResource("/").getPath + "auron-tests-workdir/spark-warehouse")
-        .set("spark.sql.hive.convertMetastoreParquet", "false")
-        .set("spark.sql.catalog.paimon", "org.apache.paimon.spark.SparkCatalog")
-    )) {}
-
-
+    extends TestHiveContext(
+      new SparkContext(
+        System.getProperty("spark.sql.test.master", "local[1]"),
+        "TestSQLContext",
+        new SparkConf()
+          .set("spark.sql.test", "")
+          .set(
+            "spark.sql.extensions",
+            "org.apache.spark.sql.auron.AuronSparkSessionExtension," +
+              "org.apache.paimon.spark.extensions.PaimonSparkSessionExtensions")
+          .set(
+            "spark.shuffle.manager",
+            "org.apache.spark.sql.execution.auron.shuffle.AuronShuffleManager")
+          .set("spark.memory.offHeap.enabled", "false")
+          .set("spark.auron.enable", "true")
+          .set("spark.ui.enabled", "false")
+          .set(
+            "spark.sql.warehouse.dir",
+            getClass.getResource("/").getPath + "auron-tests-workdir/spark-warehouse")
+          .set("spark.auron.udf.singleChildFallback.enabled", "false")
+          .set(
+            "spark.sql.catalog.paimon.warehouse",
+            getClass.getResource("/").getPath + "auron-tests-workdir/spark-warehouse")
+          .set("spark.sql.hive.convertMetastoreParquet", "false")
+          .set("spark.sql.catalog.paimon", "org.apache.paimon.spark.SparkCatalog"))) {}
