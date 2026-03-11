@@ -22,8 +22,10 @@ class AuronPaimonSuite extends AuronQueryTest with BaseAuronPaimonSQLSuite {
 
   test("test paimon with partition table error") {
     withTable("t1") {
-      sql("create table t1 (id string) partitioned by(pt string) TBLPROPERTIES ('file.format' = 'parquet')  ")
-      sql("alter ")
+      sql("create table t1 (id string) partitioned by(pt string) " +
+        "ROW FORMAT SERDE 'org.apache.paimon.hive.PaimonSerDe' " +
+        "STORED AS INPUTFORMAT 'org.apache.paimon.hive.mapred.PaimonInputFormat' " +
+        "OUTPUTFORMAT 'org.apache.paimon.hive.mapred.PaimonOutputFormat'")
       sql("insert into t1 partition(pt = '2026-03-10') values('1')")
       val df = sql("select * from t1 where pt = '2026-03-10'")
       df.show()

@@ -219,6 +219,11 @@
         <version>${paimonVersion}</version>
       </dependency>
       <dependency>
+        <groupId>org.apache.paimon</groupId>
+        <artifactId>paimon-hive-connector-common</artifactId>
+        <version>${paimonVersion}</version>
+      </dependency>
+      <dependency>
         <groupId>org.apache.arrow</groupId>
         <artifactId>arrow-c-data</artifactId>
         <version>${arrowVersion}</version>

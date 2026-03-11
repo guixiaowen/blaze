@@ -17,14 +17,15 @@
 package org.apache.auron
 
 import java.io.File
-
 import org.apache.commons.io.FileUtils
-import org.apache.spark.SparkConf
-import org.apache.spark.sql.test.SharedSparkSession
+import org.apache.spark.{SparkConf, SparkContext, SparkFunSuite}
+import org.apache.spark.sql.SparkSession
+import org.apache.spark.sql.hive.test.TestHiveContext
+import org.scalatest.BeforeAndAfterAll
 
-import org.apache.auron.util.SparkVersionUtil
+trait BaseAuronPaimonSQLSuite extends SparkFunSuite with BeforeAndAfterAll {
+  protected val spark: SparkSession = TestAuronHive.sparkSession
 
-trait BaseAuronPaimonSQLSuite extends SharedSparkSession {
   protected val suiteWorkspace: String = getClass.getResource("/").getPath + "auron-tests-workdir"
   protected val warehouseDir: String = suiteWorkspace + "/spark-warehouse"
   protected val metastoreDir: String = suiteWorkspace + "/meta"
@@ -46,32 +47,30 @@ trait BaseAuronPaimonSQLSuite extends SharedSparkSession {
     spark.sparkContext.setLogLevel("WARN")
   }
 
-  override def afterAll(): Unit = {
-    super.afterAll()
-  }
-
-  override protected def sparkConf: SparkConf = {
-    val conf = super.sparkConf
-      .set(
-        "spark.sql.extensions",
-        "org.apache.spark.sql.auron.AuronSparkSessionExtension," +
-          "org.apache.paimon.spark.extensions.PaimonSparkSessionExtensions")
-      .set("spark.memory.offHeap.enabled", "false")
-      .set("spark.auron.enable", "true")
-      .set("spark.ui.enabled", "false")
-      .set("spark.sql.warehouse.dir", warehouseDir)
-      .set("spark.sql.catalog.paimon.warehouse", warehouseDir)
-      .set("spark.auron.udf.singleChildFallback.enabled", "false")
-      .set("spark.sql.catalog.paimon", "org.apache.paimon.spark.SparkCatalog")
-      .set(
-        "spark.shuffle.manager",
-        "org.apache.spark.sql.execution.auron.shuffle.AuronShuffleManager")
-    if (SparkVersionUtil.isSparkV40OrGreater) {
-      // Spark 4.0+: Disable session artifact isolation, align with Spark 3.x behavior
-      // Fix Catalyst codegen failure: prevent org.apache.spark.sql.catalyst.expressions.Object
-      // in isolated dirs from REPL classloader lookup failure
-      conf.set("spark.sql.artifact.isolation.enabled", "false")
-    }
-    conf
-  }
 }
+
+object TestAuronHive
+  extends TestHiveContext(
+    new SparkContext(
+      System.getProperty("spark.sql.test.master", "local[1]"),
+      "TestSQLContext",
+      new SparkConf()
+        .set("spark.sql.test", "")
+        .set("spark.sql.extensions", "org.apache.spark.sql.auron.AuronSparkSessionExtension," +
+          "org.apache.paimon.spark.extensions.PaimonSparkSessionExtensions")
+        .set(
+          "spark.shuffle.manager",
+          "org.apache.spark.sql.execution.auron.shuffle.AuronShuffleManager")
+        .set("spark.memory.offHeap.enabled", "false")
+        .set("spark.auron.enable", "true")
+        .set("spark.ui.enabled", "false")
+        .set(
+          "spark.sql.warehouse.dir",
+          getClass.getResource("/").getPath + "auron-tests-workdir/spark-warehouse")
+        .set("spark.auron.udf.singleChildFallback.enabled", "false")
+        .set("spark.sql.catalog.paimon.warehouse", getClass.getResource("/").getPath + "auron-tests-workdir/spark-warehouse")
+        .set("spark.sql.hive.convertMetastoreParquet", "false")
+        .set("spark.sql.catalog.paimon", "org.apache.paimon.spark.SparkCatalog")
+    )) {}
+
+

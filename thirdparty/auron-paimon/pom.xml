@@ -53,6 +53,11 @@
       <scope>provided</scope>
     </dependency>
     <dependency>
+      <groupId>org.apache.paimon</groupId>
+      <artifactId>paimon-hive-connector-common</artifactId>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
       <groupId>org.apache.spark</groupId>
       <artifactId>spark-sql_${scalaVersion}</artifactId>
       <scope>provided</scope>
@@ -75,6 +80,11 @@
     <dependency>
       <groupId>org.apache.spark</groupId>
       <artifactId>spark-catalyst_${scalaVersion}</artifactId>
+      <type>test-jar</type>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.spark</groupId>
+      <artifactId>spark-hive_${scalaVersion}</artifactId>
       <type>test-jar</type>
     </dependency>
   </dependencies>
