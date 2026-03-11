@@ -262,7 +262,7 @@ object ParquetHiveTableUtil {
   private val parquetFormat = "MapredParquetInputFormat"
 
   def getFileFormat(inputFormatClass: Class[_ <: InputFormat[_, _]]): String = {
-   if (inputFormatClass.getSimpleName.equalsIgnoreCase(parquetFormat)) {
+    if (inputFormatClass.getSimpleName.equalsIgnoreCase(parquetFormat)) {
       "parquet"
     } else {
       "other"

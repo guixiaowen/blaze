@@ -16,13 +16,13 @@
  */
 package org.apache.spark.sql.hive.execution
 
+import java.io.File
+
 import org.apache.commons.io.FileUtils
 import org.apache.spark.{SparkConf, SparkContext, SparkFunSuite}
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.hive.test.TestHiveContext
 import org.scalatest.BeforeAndAfterAll
-
-import java.io.File
 
 trait BaseAuronHiveSuite extends SparkFunSuite with BeforeAndAfterAll {
 
@@ -70,5 +70,4 @@ object TestAuronHive
             getClass.getResource("/").getPath + "auron-tests-workdir/spark-warehouse")
           .set("spark.auron.udf.singleChildFallback.enabled", "false")
           .set("spark.auron.enable.parquetHiveTableScanExec", "true")
-          .set("spark.sql.hive.convertMetastoreParquet", "false")
-      )) {}
+          .set("spark.sql.hive.convertMetastoreParquet", "false"))) {}

@@ -17,7 +17,7 @@
 package org.apache.spark.sql.hive.execution.auron.plan
 
 import org.apache.spark.internal.Logging
-import org.apache.spark.sql.auron.{AuronConvertProvider, AuronConverters}
+import org.apache.spark.sql.auron.{AuronConverters, AuronConvertProvider}
 import org.apache.spark.sql.auron.AuronConverters.getBooleanConf
 import org.apache.spark.sql.execution.SparkPlan
 import org.apache.spark.sql.hive.client.HiveClientImpl
@@ -42,8 +42,9 @@ class HiveConvertProvider extends AuronConvertProvider with Logging {
 
   override def convert(exec: SparkPlan): SparkPlan = {
     exec match {
-      case hiveExec: HiveTableScanExec if enableHiveTableScanExec
-        && HiveTableUtil.isParquetTable(hiveExec) =>
+      case hiveExec: HiveTableScanExec
+          if enableHiveTableScanExec
+            && HiveTableUtil.isParquetTable(hiveExec) =>
         convertParquetHiveTableScanExec(hiveExec)
       case _ => exec
     }
@@ -58,7 +59,11 @@ object HiveTableUtil {
   private val parquetFormat = "MapredParquetInputFormat"
 
   def isParquetTable(basedHiveScan: HiveTableScanExec): Boolean = {
-    if (HiveClientImpl.toHiveTable(basedHiveScan.relation.tableMeta).getInputFormatClass.getSimpleName.equalsIgnoreCase(parquetFormat)) {
+    if (HiveClientImpl
+        .toHiveTable(basedHiveScan.relation.tableMeta)
+        .getInputFormatClass
+        .getSimpleName
+        .equalsIgnoreCase(parquetFormat)) {
       true
     } else {
       false
