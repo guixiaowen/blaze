@@ -23,11 +23,13 @@ class AuronPaimonSuite extends AuronQueryTest with BaseAuronPaimonSQLSuite {
   test("test paimon with partition table error") {
     withTable("t1") {
       sql(
-        "create table t1 (id string) partitioned by(pt string) " +
+        "create table t1 (id string) " +
           "ROW FORMAT SERDE 'org.apache.paimon.hive.PaimonSerDe' " +
-          "STORED AS INPUTFORMAT 'org.apache.paimon.hive.mapred.PaimonInputFormat' " +
+          "STORED AS " +
+          "INPUTFORMAT 'org.apache.paimon.hive.mapred.PaimonInputFormat' " +
           "OUTPUTFORMAT 'org.apache.paimon.hive.mapred.PaimonOutputFormat'")
-      sql("insert into t1 partition(pt = '2026-03-10') values('1')")
+      sql("desc table formatted t1").show()
+      sql("insert into t1 values('1')")
       val df = sql("select * from t1 where pt = '2026-03-10'")
       df.show()
       assert(df.collect().toList.head.get(0) == "1")
