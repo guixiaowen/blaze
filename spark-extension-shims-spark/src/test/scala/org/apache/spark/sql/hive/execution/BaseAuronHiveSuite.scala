@@ -16,39 +16,13 @@
  */
 package org.apache.spark.sql.hive.execution
 
-import java.io.File
-
-import org.apache.commons.io.FileUtils
-import org.apache.spark.{SparkConf, SparkContext, SparkFunSuite}
+import org.apache.spark.{SparkConf, SparkContext}
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.hive.test.TestHiveContext
-import org.scalatest.BeforeAndAfterAll
 
-trait BaseAuronHiveSuite extends SparkFunSuite with BeforeAndAfterAll {
+trait BaseAuronHiveSuite {
 
   protected val spark: SparkSession = TestAuronHive.sparkSession
-
-  protected val suiteWorkspace: String = getClass.getResource("/").getPath + "auron-tests-workdir"
-  protected val warehouseDir: String = suiteWorkspace + "/spark-warehouse"
-  protected val metastoreDir: String = suiteWorkspace + "/meta"
-
-  protected def resetSuiteWorkspace(): Unit = {
-    val workdir = new File(suiteWorkspace)
-    if (workdir.exists()) {
-      FileUtils.forceDelete(workdir)
-    }
-    FileUtils.forceMkdir(workdir)
-    FileUtils.forceMkdir(new File(warehouseDir))
-    FileUtils.forceMkdir(new File(metastoreDir))
-  }
-
-  override def beforeAll(): Unit = {
-    // Prepare a clean workspace before SparkSession initialization
-    resetSuiteWorkspace()
-    super.beforeAll()
-    spark.sparkContext.setLogLevel("WARN")
-  }
-
 }
 
 object TestAuronHive
