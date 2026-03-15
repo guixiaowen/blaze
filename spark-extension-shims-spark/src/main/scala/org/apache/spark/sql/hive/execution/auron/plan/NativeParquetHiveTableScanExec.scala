@@ -17,8 +17,10 @@
 package org.apache.spark.sql.hive.execution.auron.plan
 
 import java.util.UUID
+
 import scala.collection.JavaConverters._
 import scala.collection.mutable.ArrayBuffer
+
 import org.apache.hadoop.conf.Configurable
 import org.apache.hadoop.hive.ql.exec.Utilities
 import org.apache.hadoop.hive.ql.metadata.{Table => HiveTable}
@@ -41,6 +43,7 @@ import org.apache.spark.sql.execution.datasources.{FilePartition, PartitionedFil
 import org.apache.spark.sql.hive.{HadoopTableReader, HiveShim}
 import org.apache.spark.sql.hive.client.HiveClientImpl
 import org.apache.spark.sql.hive.execution.HiveTableScanExec
+
 import org.apache.auron.{sparkver, protobuf => pb}
 import org.apache.auron.metric.SparkMetricNode
 
@@ -167,8 +170,7 @@ case class NativeParquetHiveTableScanExec(basedHiveScan: HiveTableScanExec)
     partitions.foreach { partition =>
       val partDesc = Utilities.getPartitionDescFromTableDesc(nativeTableDesc, partition, true)
       val partPath = partition.getDataLocation
-      HadoopTableReader.initializeLocalJobConfFunc(partPath.toString, nativeTableDesc)(
-        newJobConf)
+      HadoopTableReader.initializeLocalJobConfFunc(partPath.toString, nativeTableDesc)(newJobConf)
       val partitionValues = partition.getTPartition.getValues
 
       val partitionInternalRow = new GenericInternalRow(partitionValues.size())
@@ -196,8 +198,7 @@ case class NativeParquetHiveTableScanExec(basedHiveScan: HiveTableScanExec)
     partitions.foreach { partition =>
       val partDesc = Utilities.getPartitionDescFromTableDesc(nativeTableDesc, partition, true)
       val partPath = partition.getDataLocation
-      HadoopTableReader.initializeLocalJobConfFunc(partPath.toString, nativeTableDesc)(
-        newJobConf)
+      HadoopTableReader.initializeLocalJobConfFunc(partPath.toString, nativeTableDesc)(newJobConf)
       val partitionValues = partition.getTPartition.getValues
 
       val partitionInternalRow = new GenericInternalRow(partitionValues.size())
