@@ -17,10 +17,8 @@
 package org.apache.spark.sql.hive.execution.auron.plan
 
 import java.util.UUID
-
 import scala.collection.JavaConverters._
 import scala.collection.mutable.ArrayBuffer
-
 import org.apache.hadoop.conf.Configurable
 import org.apache.hadoop.hive.ql.exec.Utilities
 import org.apache.hadoop.hive.ql.metadata.{Table => HiveTable}
@@ -43,8 +41,7 @@ import org.apache.spark.sql.execution.datasources.{FilePartition, PartitionedFil
 import org.apache.spark.sql.hive.{HadoopTableReader, HiveShim}
 import org.apache.spark.sql.hive.client.HiveClientImpl
 import org.apache.spark.sql.hive.execution.HiveTableScanExec
-
-import org.apache.auron.{protobuf => pb}
+import org.apache.auron.{sparkver, protobuf => pb}
 import org.apache.auron.metric.SparkMetricNode
 
 case class NativeParquetHiveTableScanExec(basedHiveScan: HiveTableScanExec)
@@ -163,35 +160,69 @@ case class NativeParquetHiveTableScanExec(basedHiveScan: HiveTableScanExec)
       friendlyName = "NativeRDD.ParquetHiveTableScan")
   }
 
+  @sparkver("3.1 / 3.2 / 3.3 / 3.4 / 3.5 / 4.0 / 4.1")
+  def getPrunedPartitions(newJobConf: JobConf): Array[PartitionedFile] = {
+    val partitions = basedHiveScan.prunedPartitions
+    val arrayPartitionedFile = ArrayBuffer[PartitionedFile]()
+    partitions.foreach { partition =>
+      val partDesc = Utilities.getPartitionDescFromTableDesc(nativeTableDesc, partition, true)
+      val partPath = partition.getDataLocation
+      HadoopTableReader.initializeLocalJobConfFunc(partPath.toString, nativeTableDesc)(
+        newJobConf)
+      val partitionValues = partition.getTPartition.getValues
+
+      val partitionInternalRow = new GenericInternalRow(partitionValues.size())
+      for (partitionIndex <- 0 until partitionValues.size) {
+        partitionInternalRow.update(partitionIndex, partitionValues.get(partitionIndex))
+      }
+
+      val inputFormatClass = partDesc.getInputFileFormatClass
+        .asInstanceOf[Class[newInputClass[Writable, Writable]]]
+      newJobConf.set("mapred.input.dir", partPath.toString)
+      arrayPartitionedFile ++= getArrayPartitionedFile(
+        newJobConf,
+        inputFormatClass,
+        partitionInternalRow)
+    }
+    arrayPartitionedFile
+      .sortBy(_.length)(implicitly[Ordering[Long]].reverse)
+      .toArray
+  }
+
+  @sparkver("3.0")
+  def getPrunedPartitions(newJobConf: JobConf): Array[PartitionedFile] = {
+    val partitions = basedHiveScan.rawPartitions
+    val arrayPartitionedFile = ArrayBuffer[PartitionedFile]()
+    partitions.foreach { partition =>
+      val partDesc = Utilities.getPartitionDescFromTableDesc(nativeTableDesc, partition, true)
+      val partPath = partition.getDataLocation
+      HadoopTableReader.initializeLocalJobConfFunc(partPath.toString, nativeTableDesc)(
+        newJobConf)
+      val partitionValues = partition.getTPartition.getValues
+
+      val partitionInternalRow = new GenericInternalRow(partitionValues.size())
+      for (partitionIndex <- 0 until partitionValues.size) {
+        partitionInternalRow.update(partitionIndex, partitionValues.get(partitionIndex))
+      }
+
+      val inputFormatClass = partDesc.getInputFileFormatClass
+        .asInstanceOf[Class[newInputClass[Writable, Writable]]]
+      newJobConf.set("mapred.input.dir", partPath.toString)
+      arrayPartitionedFile ++= getArrayPartitionedFile(
+        newJobConf,
+        inputFormatClass,
+        partitionInternalRow)
+    }
+    arrayPartitionedFile
+      .sortBy(_.length)(implicitly[Ordering[Long]].reverse)
+      .toArray
+  }
+
   override def getFilePartitions(): Array[FilePartition] = {
     val newJobConf = new JobConf(nativeHadoopConf)
     val arrayFilePartition = ArrayBuffer[FilePartition]()
     val partitionedFiles = if (relation.isPartitioned) {
-      val partitions = basedHiveScan.prunedPartitions
-      val arrayPartitionedFile = ArrayBuffer[PartitionedFile]()
-      partitions.foreach { partition =>
-        val partDesc = Utilities.getPartitionDescFromTableDesc(nativeTableDesc, partition, true)
-        val partPath = partition.getDataLocation
-        HadoopTableReader.initializeLocalJobConfFunc(partPath.toString, nativeTableDesc)(
-          newJobConf)
-        val partitionValues = partition.getTPartition.getValues
-
-        val partitionInternalRow = new GenericInternalRow(partitionValues.size())
-        for (partitionIndex <- 0 until partitionValues.size) {
-          partitionInternalRow.update(partitionIndex, partitionValues.get(partitionIndex))
-        }
-
-        val inputFormatClass = partDesc.getInputFileFormatClass
-          .asInstanceOf[Class[newInputClass[Writable, Writable]]]
-        newJobConf.set("mapred.input.dir", partPath.toString)
-        arrayPartitionedFile ++= getArrayPartitionedFile(
-          newJobConf,
-          inputFormatClass,
-          partitionInternalRow)
-      }
-      arrayPartitionedFile
-        .sortBy(_.length)(implicitly[Ordering[Long]].reverse)
-        .toArray
+      getPrunedPartitions(newJobConf)
     } else {
       newJobConf.set("mapred.input.dir", nativeTableDesc.getProperties().getProperty("location"))
       val inputFormatClass =
