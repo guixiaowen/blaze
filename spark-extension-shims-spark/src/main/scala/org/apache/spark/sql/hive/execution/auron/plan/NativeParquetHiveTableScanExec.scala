@@ -44,7 +44,7 @@ import org.apache.spark.sql.hive.{HadoopTableReader, HiveShim}
 import org.apache.spark.sql.hive.client.HiveClientImpl
 import org.apache.spark.sql.hive.execution.HiveTableScanExec
 
-import org.apache.auron.{sparkver, protobuf => pb}
+import org.apache.auron.{protobuf => pb, sparkver}
 import org.apache.auron.metric.SparkMetricNode
 
 case class NativeParquetHiveTableScanExec(basedHiveScan: HiveTableScanExec)
