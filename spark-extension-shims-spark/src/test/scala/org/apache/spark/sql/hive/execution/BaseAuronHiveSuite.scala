@@ -16,20 +16,21 @@
  */
 package org.apache.spark.sql.hive.execution
 
+import java.io.File
+
 import org.apache.commons.io.FileUtils
-import org.apache.spark.sql.execution.adaptive.AdaptiveSparkPlanHelper
 import org.apache.spark.{SparkConf, SparkContext}
 import org.apache.spark.sql.{QueryTest, SparkSession}
+import org.apache.spark.sql.execution.adaptive.AdaptiveSparkPlanHelper
 import org.apache.spark.sql.hive.test.TestHiveContext
 import org.apache.spark.sql.test.SQLTestUtils
 import org.scalatest.BeforeAndAfterEach
 
-import java.io.File
-
-trait BaseAuronHiveSuite extends QueryTest
-  with SQLTestUtils
-  with BeforeAndAfterEach
-  with AdaptiveSparkPlanHelper {
+trait BaseAuronHiveSuite
+    extends QueryTest
+    with SQLTestUtils
+    with BeforeAndAfterEach
+    with AdaptiveSparkPlanHelper {
   protected val suiteWorkspace: String = getClass.getResource("/").getPath + "auron-tests-workdir"
   protected val warehouseDir: String = suiteWorkspace + "/spark-warehouse"
   protected val metastoreDir: String = suiteWorkspace + "/meta"
@@ -58,24 +59,21 @@ trait BaseAuronHiveSuite extends QueryTest
   }
 
   object TestAuronHive
-    extends TestHiveContext(
-      new SparkContext(
-        System.getProperty("spark.sql.test.master", "local[1]"),
-        "TestSQLContext",
-        new SparkConf()
-          .set("spark.sql.test", "")
-          .set("spark.sql.extensions", "org.apache.spark.sql.auron.AuronSparkSessionExtension")
-          .set(
-            "spark.shuffle.manager",
-            "org.apache.spark.sql.execution.auron.shuffle.AuronShuffleManager")
-          .set("spark.memory.offHeap.enabled", "false")
-          .set("spark.auron.enable", "true")
-          .set("spark.ui.enabled", "false")
-          .set(
-            "spark.sql.warehouse.dir", warehouseDir)
-          .set("spark.auron.udf.singleChildFallback.enabled", "false")
-          .set("spark.auron.enable.parquetHiveTableScanExec", "true")
-          .set("spark.sql.hive.convertMetastoreParquet", "false"))) {}
+      extends TestHiveContext(
+        new SparkContext(
+          System.getProperty("spark.sql.test.master", "local[1]"),
+          "TestSQLContext",
+          new SparkConf()
+            .set("spark.sql.test", "")
+            .set("spark.sql.extensions", "org.apache.spark.sql.auron.AuronSparkSessionExtension")
+            .set(
+              "spark.shuffle.manager",
+              "org.apache.spark.sql.execution.auron.shuffle.AuronShuffleManager")
+            .set("spark.memory.offHeap.enabled", "false")
+            .set("spark.auron.enable", "true")
+            .set("spark.ui.enabled", "false")
+            .set("spark.sql.warehouse.dir", warehouseDir)
+            .set("spark.auron.udf.singleChildFallback.enabled", "false")
+            .set("spark.auron.enable.parquetHiveTableScanExec", "true")
+            .set("spark.sql.hive.convertMetastoreParquet", "false"))) {}
 }
-
-
