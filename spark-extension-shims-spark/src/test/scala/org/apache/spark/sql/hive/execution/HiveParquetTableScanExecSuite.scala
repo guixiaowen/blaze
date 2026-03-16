@@ -16,10 +16,9 @@
  */
 package org.apache.spark.sql.hive.execution
 
-import org.apache.spark.sql.AuronQueryTest
 import org.apache.spark.sql.hive.execution.auron.plan.NativeParquetHiveTableScanExec
 
-class HiveParquetTableScanExecSuite extends AuronQueryTest with BaseAuronHiveSuite {
+class HiveParquetTableScanExecSuite extends BaseAuronHiveSuite {
 
   test("test hive parquet table without partition to native") {
     withTempView("t1") {
