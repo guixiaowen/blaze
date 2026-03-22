@@ -69,6 +69,7 @@ trait BaseAuronSQLSuite extends SharedSparkSession {
         "spark.sql.hive.metastore.barrierPrefixes",
         "org.apache.spark.sql.hive.execution.PairSerDe")
       .set("spark.hadoop.hive.metastore.disallow.incompatible.col.type.changes", "false")
+      .set("spark.sql.catalogImplementation", "hive")
 
     if (SparkVersionUtil.isSparkV40OrGreater) {
       // Spark 4.0+: Disable session artifact isolation, align with Spark 3.x behavior

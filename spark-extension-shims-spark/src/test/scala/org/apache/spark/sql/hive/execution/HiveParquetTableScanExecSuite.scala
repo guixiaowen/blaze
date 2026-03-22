@@ -16,15 +16,16 @@
  */
 package org.apache.spark.sql.hive.execution
 
+import org.apache.spark.sql.AuronQueryTest
 import org.apache.spark.sql.hive.execution.auron.plan.NativeParquetHiveTableScanExec
 
-class HiveParquetTableScanExecSuite extends BaseAuronHiveSuite {
+class HiveParquetTableScanExecSuite extends AuronQueryTest with BaseAuronHiveSuite {
 
   test("test hive parquet table without partition to native") {
     withTempView("t1") {
-      spark.sql("create table t1 (a string) stored as parquet")
-      spark.sql("insert into t1 values(1)")
-      val df = spark.sql("select * from t1")
+      TestAuronHive.sql("create table t1 (a string) stored as parquet")
+      TestAuronHive.sql("insert into t1 values(1)")
+      val df = TestAuronHive.sql("select * from t1")
       assert(df.collect().toList.head.get(0) == "1")
       val plan = df.queryExecution.executedPlan
       assert(collect(plan) { case e: NativeParquetHiveTableScanExec =>
@@ -35,10 +36,10 @@ class HiveParquetTableScanExecSuite extends BaseAuronHiveSuite {
 
   test("test hive parquet table partition to native") {
     withTempView("t1") {
-      spark.sql("create table t1 (a string) stored as parquet partitioned by(pt string)")
-      spark.sql("insert into t1 partition(pt='2026-03-10') values('1')")
-      spark.sql("insert into t1 partition(pt='2026-03-11') values('1')")
-      val df = spark.sql("select * from t1 where pt = '2026-03-10'")
+      TestAuronHive.sql("create table t1 (a string) stored as parquet partitioned by(pt string)")
+      TestAuronHive.sql("insert into t1 partition(pt='2026-03-10') values('1')")
+      TestAuronHive.sql("insert into t1 partition(pt='2026-03-11') values('1')")
+      val df = TestAuronHive.sql("select * from t1 where pt = '2026-03-10'")
       df.show()
       assert(df.collect().toList.head.get(0) == "1")
       assert(df.collect().toList.head.get(1) == "2026-03-10")

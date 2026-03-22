@@ -16,47 +16,38 @@
  */
 package org.apache.spark.sql.hive.execution
 
-import java.io.File
 
-import org.apache.commons.io.FileUtils
 import org.apache.spark.{SparkConf, SparkContext}
-import org.apache.spark.sql.{QueryTest, SparkSession}
-import org.apache.spark.sql.execution.adaptive.AdaptiveSparkPlanHelper
+import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.hive.test.TestHiveContext
-import org.apache.spark.sql.test.SQLTestUtils
-import org.scalatest.BeforeAndAfterEach
 
-trait BaseAuronHiveSuite
-    extends QueryTest
-    with SQLTestUtils
-    with BeforeAndAfterEach
-    with AdaptiveSparkPlanHelper {
+trait BaseAuronHiveSuite {
   protected val suiteWorkspace: String = getClass.getResource("/").getPath + "auron-tests-workdir"
   protected val warehouseDir: String = suiteWorkspace + "/spark-warehouse"
   protected val metastoreDir: String = suiteWorkspace + "/meta"
 
   protected val spark: SparkSession = TestAuronHive.sparkSession
 
-  protected def resetSuiteWorkspace(): Unit = {
-    val workdir = new File(suiteWorkspace)
-    if (workdir.exists()) {
-      FileUtils.forceDelete(workdir)
-    }
-    FileUtils.forceMkdir(workdir)
-    FileUtils.forceMkdir(new File(warehouseDir))
-    FileUtils.forceMkdir(new File(metastoreDir))
-  }
-
-  override def beforeAll(): Unit = {
-    // Prepare a clean workspace before SparkSession initialization
-    resetSuiteWorkspace()
-    super.beforeAll()
-    spark.sparkContext.setLogLevel("WARN")
-  }
-
-  override def afterAll(): Unit = {
-    super.afterAll()
-  }
+//  protected def resetSuiteWorkspace(): Unit = {
+//    val workdir = new File(suiteWorkspace)
+//    if (workdir.exists()) {
+//      FileUtils.forceDelete(workdir)
+//    }
+//    FileUtils.forceMkdir(workdir)
+//    FileUtils.forceMkdir(new File(warehouseDir))
+//    FileUtils.forceMkdir(new File(metastoreDir))
+//  }
+//
+//  override def beforeAll(): Unit = {
+//    // Prepare a clean workspace before SparkSession initialization
+//    resetSuiteWorkspace()
+//    super.beforeAll()
+//    spark.sparkContext.setLogLevel("WARN")
+//  }
+//
+//  override def afterAll(): Unit = {
+//    super.afterAll()
+//  }
 
   object TestAuronHive
       extends TestHiveContext(
