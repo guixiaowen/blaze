@@ -21,8 +21,8 @@ import org.apache.spark.sql.execution.SparkPlan
 
 import org.apache.auron.sparkver
 
-case class NativeCoalesceExec(numPartitions: Int, child: SparkPlan)
-    extends NativeCoalesceBase(numPartitions: Int, child: SparkPlan) {
+case class NativeCoalesceExec(numPartitions: Int, override val child: SparkPlan)
+    extends NativeCoalesceBase(numPartitions, child) {
   @sparkver("3.2 / 3.3 / 3.4 / 3.5 / 4.0 / 4.1")
   override protected def withNewChildInternal(newChild: SparkPlan): SparkPlan =
     copy(child = newChild)

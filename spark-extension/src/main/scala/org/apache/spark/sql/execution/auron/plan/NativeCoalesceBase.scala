@@ -22,39 +22,57 @@ import scala.collection.mutable.ArrayBuffer
 import org.apache.spark.Partition
 import org.apache.spark.rdd.{CoalescedRDDPartition, PartitionCoalescer, PartitionGroup, RDD}
 import org.apache.spark.sql.auron.{CoalesceNativeRDD, EmptyNativeRDD, NativeHelper, NativeRDD, NativeSupports}
-import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.execution.{SparkPlan, UnaryExecNode}
+import org.apache.spark.sql.execution.auron.plan.NativeCoalesceBase.getNativeCoalesceBuilder
 
-abstract class NativeCoalesceBase(numPartitions: Int, child: SparkPlan)
+import org.apache.auron.protobuf.{CoalesceExecNode, PhysicalPlanNode}
+
+abstract class NativeCoalesceBase(numPartitions: Int, override val child: SparkPlan)
     extends UnaryExecNode
     with NativeSupports {
 
   override val nodeName: String = "NativeCoalesce"
 
-  lazy val inputRDD: RDD[InternalRow] = if (NativeHelper.isNative(child)) {
-    NativeHelper.executeNative(child)
-  } else {
-    child.execute()
-  }
+  private def nativeCoalesce = getNativeCoalesceBuilder(numPartitions).buildPartial()
 
-  val partitions: Array[Partition] = {
-    val pc = new DefaultPartitionCoalescer()
-
-    pc.coalesce(numPartitions, inputRDD).zipWithIndex.map { case (pg, i) =>
-      val ids = pg.partitions.map(_.index).toArray
-      CoalescedRDDPartition(i, inputRDD, ids, pg.prefLoc)
-    }
-  }
+  nativeCoalesce
 
   override def doExecuteNative(): NativeRDD = {
+    val inputRDD = NativeHelper.executeNative(child)
+    val partitions: Array[Partition] = {
+      val pc = new DefaultPartitionCoalescer()
+
+      pc.coalesce(numPartitions, inputRDD).zipWithIndex.map { case (pg, i) =>
+        val ids = pg.partitions.map(_.index).toArray
+        CoalescedRDDPartition(i, inputRDD, ids, pg.prefLoc)
+      }
+    }
     if (numPartitions == 1 && inputRDD.getNumPartitions < 1) {
       new EmptyNativeRDD(sparkContext)
     } else {
-      new CoalesceNativeRDD(sparkContext, inputRDD.dependencies, partitions, nodeName)
+      new CoalesceNativeRDD(
+        sparkContext,
+        inputRDD.dependencies,
+        partitions,
+        (partition, taskContext) => {
+          val inputPartition = inputRDD.partitions(partition.index)
+          val nativeCoalesceExec = nativeCoalesce.toBuilder
+            .setInput(inputRDD.nativePlan(inputPartition, taskContext))
+            .build()
+          PhysicalPlanNode.newBuilder().setCoalesce(nativeCoalesceExec).build()
+        },
+        nodeName)
     }
   }
 
 }
+
+object NativeCoalesceBase {
+  def getNativeCoalesceBuilder(numPartitions: Int): CoalesceExecNode.Builder = {
+    CoalesceExecNode.newBuilder().setNumPartitions(numPartitions)
+  }
+}
+
 private class DefaultPartitionCoalescer(val balanceSlack: Double = 0.10)
     extends PartitionCoalescer {
 

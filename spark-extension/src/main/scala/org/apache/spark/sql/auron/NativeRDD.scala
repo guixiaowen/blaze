@@ -82,6 +82,7 @@ class CoalesceNativeRDD(
     @transient private val rddSparkContext: SparkContext,
     rddDependencies: Seq[Dependency[_]],
     partitions: Array[Partition],
+    @transient private val nativePlan: (Partition, TaskContext) => PhysicalPlanNode,
     friendlyName: String)
     extends NativeRDD(
       rddSparkContext,
@@ -90,7 +91,7 @@ class CoalesceNativeRDD(
       rddPartitioner = None,
       rddDependencies,
       rddShuffleReadFull = false,
-      nativePlan = (_, _) => null,
+      nativePlan,
       friendlyName)
     with Logging
     with Serializable {

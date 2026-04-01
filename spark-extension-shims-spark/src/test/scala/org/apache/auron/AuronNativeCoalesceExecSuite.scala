@@ -26,9 +26,13 @@ class AuronNativeCoalesceExecSuite extends AuronQueryTest with BaseAuronSQLSuite
     withSQLConf("spark.auron.enable.coalesce" -> "true") {
       Seq((1, 2, "test test"))
         .toDF("c1", "c2", "part")
+//        .coalesce(2)
         .createOrReplaceTempView("coalesce_table1")
-      val df =
+      val df = {
+//        spark.sql("select count(a.c1), count(a.c2) from coalesce_table1 a ")
         spark.sql("select /*+ coalesce(2)*/ a.c1, a.c2 from coalesce_table1 a ")
+      }
+      df.show()
 
       checkAnswer(df, Seq(Row(1, 2)))
       assert(collectFirst(df.queryExecution.executedPlan) {
@@ -37,5 +41,19 @@ class AuronNativeCoalesceExecSuite extends AuronQueryTest with BaseAuronSQLSuite
       }.isDefined)
 
     }
+  }
+
+  test("123") {
+    val random = new java.util.Random()
+    val data = (0 until 1000).map { _ =>
+      (random.nextInt(10), random.nextInt(100))
+    }
+    data.toDF("key", "value").coalesce(2).createOrReplaceTempView("coalesce_table1")
+
+    val df =
+      spark.sql("select count(key), count(value) from coalesce_table1 a ")
+
+    checkAnswer(df, Seq(Row(1, 2)))
+
   }
 }
