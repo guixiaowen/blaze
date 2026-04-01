@@ -20,8 +20,8 @@ import java.net.URLEncoder
 import java.nio.charset.StandardCharsets.UTF_8
 import javax.servlet.http.HttpServletRequest
 
-import scala.collection.mutable
 import scala.collection.JavaConverters._
+import scala.collection.mutable
 import scala.xml.{Node, NodeSeq, Unparsed}
 
 import org.apache.spark.internal.Logging
