@@ -95,6 +95,7 @@ private[ui] class AuronAllExecutionsPage(parent: AuronSQLTab) extends WebUIPage(
     }
   }
 
+  @sparkver("3.0 / 3.1 / 3.2 / 3.3 / 3.4 / 3.5")
   private def buildExecutionsListSummary(
       executionsList: Seq[AuronSQLExecutionUIData],
       request: javax.servlet.http.HttpServletRequest): NodeSeq = {
@@ -121,6 +122,60 @@ private[ui] class AuronAllExecutionsPage(parent: AuronSQLTab) extends WebUIPage(
               {Utils.exceptionString(e)}
             </pre>
           </div>
+        }
+
+      _content ++=
+        <span id="auron" class="collapse-aggregated-runningExecutions collapse-table"
+              onClick="collapseTable('collapse-aggregated-runningExecutions',
+                  'aggregated-runningExecutions')">
+          <h4>
+            <span class="collapse-table-arrow arrow-open"></span>
+            <a href="#auron">
+              Queries:
+            </a>{executionsList.size}
+          </h4>
+        </span> ++
+          <div class="aggregated-runningExecutions collapsible-table">
+            {auronPageTable}
+          </div>
+
+      _content
+    }
+    content ++=
+      <script>
+        function clickDetail(details) {{
+        details.parentNode.querySelector('.stage-details').classList.toggle('collapsed')
+        }}
+      </script>
+  }
+
+  @sparkver("4.0 / 4.1")
+  private def buildExecutionsListSummary(
+      executionsList: Seq[AuronSQLExecutionUIData],
+      request: jakarta.servlet.http.HttpServletRequest): NodeSeq = {
+    val content = {
+      val _content = mutable.ListBuffer[Node]()
+      val executionPage =
+        Option(request.getParameter("auron.page")).map(_.toInt).getOrElse(1)
+
+      val auronPageTable =
+        try {
+          new AuronExecutionPagedTable(
+            request,
+            parent,
+            executionsList,
+            "auron",
+            "auron",
+            UIUtils.prependBaseUri(request, parent.basePath),
+            "auron").table(executionPage)
+        } catch {
+          case e @ (_: IllegalArgumentException | _: IndexOutOfBoundsException) =>
+            <div class="alert alert-error">
+              <p>Error while rendering execution table:</p>
+              <pre>
+                {Utils.exceptionString(e)}
+              </pre>
+            </div>
         }
 
       _content ++=
