@@ -1089,6 +1089,7 @@ object NativeConverters extends Logging {
         buildExtScalarFunction("Spark_NormalizeNanAndZero", e.children, e.dataType)
 
       case e: CreateArray => buildExtScalarFunction("Spark_MakeArray", e.children, e.dataType)
+      case e: MapConcat => buildExtScalarFunction("Spark_MapConcat", e.children, e.dataType)
 
       case e: CreateNamedStruct =>
         buildExprNode {
