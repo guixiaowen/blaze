@@ -955,6 +955,8 @@ object NativeConverters extends Logging {
         buildTimePartExt("Spark_Minute", e.children.head, isPruningExpr, fallback)
       case e: Second if datetimeExtractEnabled =>
         buildTimePartExt("Spark_Second", e.children.head, isPruningExpr, fallback)
+      case e: MonthsBetween =>
+        buildMonthsBetweenExt("Spark_MonthsBetween", e, isPruningExpr, fallback)
 
       // startswith is converted to scalar function in pruning-expr mode
       case StartsWith(expr, Literal(prefix, StringType)) if isPruningExpr =>
@@ -1389,6 +1391,24 @@ object NativeConverters extends Logging {
         Literal.create(null, StringType)
     }
     buildExtScalarFunctionNode(name, Seq(child, tzArg), IntegerType, isPruningExpr, fallback)
+  }
+
+  private def buildMonthsBetweenExt(
+      name: String,
+      expr: MonthsBetween,
+      isPruningExpr: Boolean,
+      fallback: Expression => pb.PhysicalExprNode): pb.PhysicalExprNode = {
+    val tzArg: Expression = if (Seq(expr.date1, expr.date2).exists(_.dataType == TimestampType)) {
+      Literal.create(SQLConf.get.sessionLocalTimeZone, StringType)
+    } else {
+      Literal.create(null, StringType)
+    }
+    buildExtScalarFunctionNode(
+      name,
+      Seq(expr.date1, expr.date2, expr.roundOff, tzArg),
+      DoubleType,
+      isPruningExpr,
+      fallback)
   }
 
   def castIfNecessary(expr: Expression, dataType: DataType): Expression = {
