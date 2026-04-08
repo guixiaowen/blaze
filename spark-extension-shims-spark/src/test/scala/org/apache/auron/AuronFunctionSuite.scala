@@ -336,6 +336,41 @@ class AuronFunctionSuite extends AuronQueryTest with BaseAuronSQLSuite {
     }
   }
 
+  test("map_from_arrays function") {
+    withTable("t1") {
+      sql("create table t1(c1 array<string>, c2 array<int>) using parquet")
+      sql("""
+          |insert into t1 values
+          |  (array('a', 'b'), array(1, 2)),
+          |  (array('x'), array(10)),
+          |  (null, array(20)),
+          |  (array('m', 'n'), array(null, 30))
+          |""".stripMargin)
+      checkSparkAnswerAndOperator("select map_from_arrays(c1, c2) from t1")
+    }
+  }
+
+  test("map_from_arrays rejects null keys") {
+    withTable("t1") {
+      sql("create table t1(c1 array<string>, c2 array<int>) using parquet")
+      sql("insert into t1 values (array('a', cast(null as string)), array(1, 2))")
+      val df = sql("select map_from_arrays(c1, c2) from t1")
+      val err = intercept[Exception] {
+        df.collect()
+      }
+      assert(err.getMessage.contains("null map keys"))
+      val plan = stripAQEPlan(df.queryExecution.executedPlan)
+      plan
+        .collectFirst { case op if !isNativeOrPassThrough(op) => op }
+        .foreach { op =>
+          fail(s"""
+               |Found non-native operator: ${op.nodeName}
+               |plan:
+               |${plan}""".stripMargin)
+        }
+    }
+  }
+
   test("acosh null propagation") {
     withTable("t1") {
       sql("create table t1(c1 double) using parquet")
