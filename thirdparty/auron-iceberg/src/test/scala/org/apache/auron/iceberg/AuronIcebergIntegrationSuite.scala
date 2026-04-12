@@ -207,13 +207,36 @@ class AuronIcebergIntegrationSuite
     }
   }
 
-  test("iceberg scan falls back when reading metadata columns") {
+  test("iceberg native scan supports _file metadata column") {
     withTable("local.db.t4") {
       sql("create table local.db.t4 using iceberg as select 1 as id, 'a' as v")
-      val df = sql("select _file from local.db.t4")
-      df.collect()
-      val plan = df.queryExecution.executedPlan.toString()
-      assert(!plan.contains("NativeIcebergTableScan"))
+      checkSparkAnswerAndOperator("select _file from local.db.t4")
+    }
+  }
+
+  test("iceberg native scan supports data columns with _file metadata column") {
+    withTable("local.db.t4_mixed") {
+      sql("create table local.db.t4_mixed using iceberg as select 1 as id, 'a' as v")
+      checkSparkAnswerAndOperator("select id, _file from local.db.t4_mixed")
+    }
+  }
+
+  test("iceberg native scan preserves projected order for _file metadata column") {
+    withTable("local.db.t4_metadata_first") {
+      sql("create table local.db.t4_metadata_first using iceberg as select 1 as id, 'a' as v")
+      checkSparkAnswerAndOperator("select _file, id from local.db.t4_metadata_first")
+    }
+  }
+
+  test("iceberg scan falls back when reading unsupported metadata columns") {
+    withTable("local.db.t4_pos") {
+      sql("create table local.db.t4_pos using iceberg as select 1 as id, 'a' as v")
+      withSQLConf("spark.auron.enable" -> "true", "spark.auron.enable.iceberg.scan" -> "true") {
+        val df = sql("select _pos from local.db.t4_pos")
+        df.collect()
+        val plan = df.queryExecution.executedPlan.toString()
+        assert(!plan.contains("NativeIcebergTableScan"))
+      }
     }
   }
 
@@ -303,6 +326,21 @@ class AuronIcebergIntegrationSuite
     }
   }
 
+  private def checkSparkAnswerAndOperator(sqlText: String): DataFrame = {
+    var expected: Seq[Row] = Nil
+    withSQLConf("spark.auron.enable" -> "false") {
+      expected = sql(sqlText).collect().toSeq
+    }
+
+    var df: DataFrame = null
+    withSQLConf("spark.auron.enable" -> "true", "spark.auron.enable.iceberg.scan" -> "true") {
+      df = sql(sqlText)
+      checkAnswer(df, expected)
+      val plan = df.queryExecution.executedPlan.toString()
+      assert(plan.contains("NativeIcebergTableScan"))
+    }
+    df
+  }
   private def icebergScanPlan(df: DataFrame) =
     df.queryExecution.sparkPlan.collectFirst { case scan: BatchScanExec =>
       IcebergScanSupport.plan(scan)
