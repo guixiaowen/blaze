@@ -17,7 +17,6 @@
 package org.apache.spark.sql.hive.execution
 
 import java.io.File
-
 import org.apache.commons.io.FileUtils
 import org.apache.spark.{SparkConf, SparkContext, SparkFunSuite}
 import org.apache.spark.sql.SparkSession
@@ -26,7 +25,7 @@ import org.scalatest.BeforeAndAfterAll
 
 trait BaseAuronHiveSuite extends SparkFunSuite with BeforeAndAfterAll {
 
-  protected val spark: SparkSession = TestAuronHive.sparkSession
+  lazy val spark: SparkSession = TestAuronHive.sparkSession
 
   protected val suiteWorkspace: String = getClass.getResource("/").getPath + "auron-tests-workdir"
   protected val warehouseDir: String = suiteWorkspace + "/spark-warehouse"
