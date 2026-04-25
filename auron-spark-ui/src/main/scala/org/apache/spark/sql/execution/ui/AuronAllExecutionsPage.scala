@@ -18,7 +18,6 @@ package org.apache.spark.sql.execution.ui
 
 import java.net.URLEncoder
 import java.nio.charset.StandardCharsets.UTF_8
-import javax.servlet.http.HttpServletRequest
 
 import scala.collection.JavaConverters._
 import scala.collection.mutable
@@ -106,7 +105,7 @@ private[ui] class AuronAllExecutionsPage(parent: AuronSQLTab) extends WebUIPage(
 
       val auronPageTable =
         try {
-          new AuronExecutionPagedTable(
+          new AuronExecutionPagedTable30(
             request,
             parent,
             executionsList,
@@ -160,7 +159,7 @@ private[ui] class AuronAllExecutionsPage(parent: AuronSQLTab) extends WebUIPage(
 
       val auronPageTable =
         try {
-          new AuronExecutionPagedTable(
+          new AuronExecutionPagedTable40(
             request,
             parent,
             executionsList,
@@ -203,228 +202,464 @@ private[ui] class AuronAllExecutionsPage(parent: AuronSQLTab) extends WebUIPage(
       </script>
   }
 
-}
+  @sparkver("3.0 / 3.1 / 3.2 / 3.3 / 3.4 / 3.5")
+  class AuronExecutionPagedTable30(
+      request: javax.servlet.http.HttpServletRequest,
+      parent: AuronSQLTab,
+      data: Seq[AuronSQLExecutionUIData],
+      tableHeaderId: String,
+      executionTag: String,
+      basePath: String,
+      subPath: String)
+      extends PagedTable[AuronExecutionTableRowData] {
 
-private[ui] class AuronExecutionPagedTable(
-    request: HttpServletRequest,
-    parent: AuronSQLTab,
-    data: Seq[AuronSQLExecutionUIData],
-    tableHeaderId: String,
-    executionTag: String,
-    basePath: String,
-    subPath: String)
-    extends PagedTable[AuronExecutionTableRowData] {
+    private val (sortColumn, desc, pageSize) =
+      getAuronTableParameters(request, executionTag, "ID")
 
-  private val (sortColumn, desc, pageSize) = getAuronTableParameters(request, executionTag, "ID")
+    private val encodedSortColumn = URLEncoder.encode(sortColumn, UTF_8.name())
 
-  private val encodedSortColumn = URLEncoder.encode(sortColumn, UTF_8.name())
+    override val dataSource = new AuronExecutionDataSource(data, pageSize, sortColumn, desc)
 
-  override val dataSource = new AuronExecutionDataSource(data, pageSize, sortColumn, desc)
+    private val parameterPath =
+      s"$basePath/$subPath/?${getAuronParameterOtherTable(request, executionTag)}"
 
-  private val parameterPath =
-    s"$basePath/$subPath/?${getAuronParameterOtherTable(request, executionTag)}"
+    override def tableId: String = s"$executionTag-table"
 
-  override def tableId: String = s"$executionTag-table"
+    override def tableCssClass: String =
+      "table table-bordered table-sm table-striped table-head-clickable table-cell-width-limited"
 
-  override def tableCssClass: String =
-    "table table-bordered table-sm table-striped table-head-clickable table-cell-width-limited"
+    override def pageLink(page: Int): String = {
+      parameterPath +
+        s"&$pageNumberFormField=$page" +
+        s"&$executionTag.sort=$encodedSortColumn" +
+        s"&$executionTag.desc=$desc" +
+        s"&$pageSizeFormField=$pageSize" +
+        s"#$tableHeaderId"
+    }
 
-  override def pageLink(page: Int): String = {
-    parameterPath +
-      s"&$pageNumberFormField=$page" +
-      s"&$executionTag.sort=$encodedSortColumn" +
-      s"&$executionTag.desc=$desc" +
-      s"&$pageSizeFormField=$pageSize" +
-      s"#$tableHeaderId"
-  }
+    /**
+     * Returns parameters of other tables in the page.
+     */
+    def getAuronParameterOtherTable(
+        request: javax.servlet.http.HttpServletRequest,
+        tableTag: String): String = {
+      request.getParameterMap.asScala
+        .filterNot(_._1.startsWith(tableTag))
+        .map(parameter => parameter._1 + "=" + parameter._2(0))
+        .mkString("&")
+    }
 
-  /**
-   * Returns parameters of other tables in the page.
-   */
-  def getAuronParameterOtherTable(request: HttpServletRequest, tableTag: String): String = {
-    request.getParameterMap.asScala
-      .filterNot(_._1.startsWith(tableTag))
-      .map(parameter => parameter._1 + "=" + parameter._2(0))
-      .mkString("&")
-  }
+    /**
+     * Returns parameter of this table.
+     */
+    def getAuronTableParameters(
+        request: javax.servlet.http.HttpServletRequest,
+        tableTag: String,
+        defaultSortColumn: String): (String, Boolean, Int) = {
+      val parameterSortColumn = request.getParameter(s"$tableTag.sort")
+      val parameterSortDesc = request.getParameter(s"$tableTag.desc")
+      val parameterPageSize = request.getParameter(s"$tableTag.pageSize")
+      val sortColumn = Option(parameterSortColumn)
+        .map { sortColumn =>
+          UIUtils.decodeURLParameter(sortColumn)
+        }
+        .getOrElse(defaultSortColumn)
+      val desc =
+        Option(parameterSortDesc).map(_.toBoolean).getOrElse(sortColumn == defaultSortColumn)
+      val pageSize = Option(parameterPageSize).map(_.toInt).getOrElse(100)
 
-  /**
-   * Returns parameter of this table.
-   */
-  def getAuronTableParameters(
-      request: HttpServletRequest,
-      tableTag: String,
-      defaultSortColumn: String): (String, Boolean, Int) = {
-    val parameterSortColumn = request.getParameter(s"$tableTag.sort")
-    val parameterSortDesc = request.getParameter(s"$tableTag.desc")
-    val parameterPageSize = request.getParameter(s"$tableTag.pageSize")
-    val sortColumn = Option(parameterSortColumn)
-      .map { sortColumn =>
-        UIUtils.decodeURLParameter(sortColumn)
-      }
-      .getOrElse(defaultSortColumn)
-    val desc =
-      Option(parameterSortDesc).map(_.toBoolean).getOrElse(sortColumn == defaultSortColumn)
-    val pageSize = Option(parameterPageSize).map(_.toInt).getOrElse(100)
+      (sortColumn, desc, pageSize)
+    }
 
-    (sortColumn, desc, pageSize)
-  }
+    override def pageSizeFormField: String = s"$executionTag.pageSize"
 
-  override def pageSizeFormField: String = s"$executionTag.pageSize"
+    override def pageNumberFormField: String = s"$executionTag.page"
 
-  override def pageNumberFormField: String = s"$executionTag.page"
+    override def goButtonFormPath: String =
+      s"$parameterPath&$executionTag.sort=$encodedSortColumn&$executionTag.desc=$desc#$tableHeaderId"
 
-  override def goButtonFormPath: String =
-    s"$parameterPath&$executionTag.sort=$encodedSortColumn&$executionTag.desc=$desc#$tableHeaderId"
+    // Information for each header: title, sortable, tooltip
+    private val headerInfo: Seq[(String, Boolean, Option[String])] = {
+      Seq(
+        ("ID", true, None),
+        ("Description", true, None),
+        ("Num Auron Nodes", true, None),
+        ("Num Fallback Nodes", true, None))
+    }
 
-  // Information for each header: title, sortable, tooltip
-  private val headerInfo: Seq[(String, Boolean, Option[String])] = {
-    Seq(
-      ("ID", true, None),
-      ("Description", true, None),
-      ("Num Auron Nodes", true, None),
-      ("Num Fallback Nodes", true, None))
-  }
+    override def headers: Seq[Node] = {
+      isAuronSortColumnValid(headerInfo, sortColumn)
 
-  override def headers: Seq[Node] = {
-    isAuronSortColumnValid(headerInfo, sortColumn)
+      headerAuronRow(
+        headerInfo,
+        desc,
+        pageSize,
+        sortColumn,
+        parameterPath,
+        executionTag,
+        tableHeaderId)
+    }
 
-    headerAuronRow(
-      headerInfo,
-      desc,
-      pageSize,
-      sortColumn,
-      parameterPath,
-      executionTag,
-      tableHeaderId)
-  }
-
-  def headerAuronRow(
-      headerInfo: Seq[(String, Boolean, Option[String])],
-      desc: Boolean,
-      pageSize: Int,
-      sortColumn: String,
-      parameterPath: String,
-      tableTag: String,
-      headerId: String): Seq[Node] = {
-    val row: Seq[Node] = {
-      headerInfo.map { case (header, sortable, tooltip) =>
-        if (header == sortColumn) {
-          val headerLink = Unparsed(
-            parameterPath +
-              s"&$tableTag.sort=${URLEncoder.encode(header, UTF_8.name())}" +
-              s"&$tableTag.desc=${!desc}" +
-              s"&$tableTag.pageSize=$pageSize" +
-              s"#$headerId")
-          val arrow = if (desc) "&#x25BE;" else "&#x25B4;" // UP or DOWN
-
-          <th>
-            <a href={headerLink}>
-              <span data-toggle="tooltip" data-placement="top" title={tooltip.getOrElse("")}>
-                {header}&nbsp;{Unparsed(arrow)}
-              </span>
-            </a>
-          </th>
-        } else {
-          if (sortable) {
+    def headerAuronRow(
+        headerInfo: Seq[(String, Boolean, Option[String])],
+        desc: Boolean,
+        pageSize: Int,
+        sortColumn: String,
+        parameterPath: String,
+        tableTag: String,
+        headerId: String): Seq[Node] = {
+      val row: Seq[Node] = {
+        headerInfo.map { case (header, sortable, tooltip) =>
+          if (header == sortColumn) {
             val headerLink = Unparsed(
               parameterPath +
                 s"&$tableTag.sort=${URLEncoder.encode(header, UTF_8.name())}" +
+                s"&$tableTag.desc=${!desc}" +
                 s"&$tableTag.pageSize=$pageSize" +
                 s"#$headerId")
+            val arrow = if (desc) "&#x25BE;" else "&#x25B4;" // UP or DOWN
 
             <th>
               <a href={headerLink}>
                 <span data-toggle="tooltip" data-placement="top" title={tooltip.getOrElse("")}>
-                  {header}
+                  {header}&nbsp;{Unparsed(arrow)}
                 </span>
               </a>
             </th>
           } else {
-            <th>
-              <span data-toggle="tooltip" data-placement="top" title={tooltip.getOrElse("")}>
-                {header}
-              </span>
-            </th>
+            if (sortable) {
+              val headerLink = Unparsed(
+                parameterPath +
+                  s"&$tableTag.sort=${URLEncoder.encode(header, UTF_8.name())}" +
+                  s"&$tableTag.pageSize=$pageSize" +
+                  s"#$headerId")
+
+              <th>
+                <a href={headerLink}>
+                  <span data-toggle="tooltip" data-placement="top" title={tooltip.getOrElse("")}>
+                    {header}
+                  </span>
+                </a>
+              </th>
+            } else {
+              <th>
+                <span data-toggle="tooltip" data-placement="top" title={tooltip.getOrElse("")}>
+                  {header}
+                </span>
+              </th>
+            }
           }
         }
       }
+      <thead>
+        <tr>
+          {row}
+        </tr>
+      </thead>
     }
-    <thead>
-      <tr>
-        {row}
-      </tr>
-    </thead>
-  }
 
-  def isAuronSortColumnValid(
-      headerInfo: Seq[(String, Boolean, Option[String])],
-      sortColumn: String): Unit = {
-    if (!headerInfo.filter(_._2).map(_._1).contains(sortColumn)) {
-      throw new IllegalArgumentException(s"Unknown column: $sortColumn")
-    }
-  }
-
-  override def row(executionTableRow: AuronExecutionTableRowData): Seq[Node] = {
-    val executionUIData = executionTableRow.executionUIData
-
-    <tr>
-      <td>
-        {executionUIData.executionId.toString}
-      </td>
-      <td>
-        {descriptionCell(executionUIData)}
-      </td>
-      <td sorttable_customkey={executionUIData.numAuronNodes.toString}>
-        {executionUIData.numAuronNodes.toString}
-      </td>
-      <td sorttable_customkey={executionUIData.numFallbackNodes.toString}>
-        {executionUIData.numFallbackNodes.toString}
-      </td>
-    </tr>
-  }
-
-  private def descriptionCell(execution: AuronSQLExecutionUIData): Seq[Node] = {
-    val details = if (execution.description != null && execution.description.nonEmpty) {
-      val concat = new PlanStringConcat()
-      concat.append("== Fallback Summary ==\n")
-      val fallbackSummary = execution.fallbackNodeToReason
-        .map { case (name, reason) =>
-          val id = name.substring(0, 3)
-          val nodeName = name.substring(4)
-          s"(${id.toInt}) $nodeName: $reason"
-        }
-        .mkString("\n")
-      concat.append(fallbackSummary)
-      if (execution.fallbackNodeToReason.isEmpty) {
-        concat.append("No fallback nodes")
+    def isAuronSortColumnValid(
+        headerInfo: Seq[(String, Boolean, Option[String])],
+        sortColumn: String): Unit = {
+      if (!headerInfo.filter(_._2).map(_._1).contains(sortColumn)) {
+        throw new IllegalArgumentException(s"Unknown column: $sortColumn")
       }
-      concat.append("\n\n")
-      concat.append(execution.fallbackDescription)
-
-      <span onclick="this.parentNode.querySelector('.stage-details').classList.toggle('collapsed')"
-            class="expand-details">
-        +details
-      </span> ++
-        <div class="stage-details collapsed">
-          <pre>{concat.toString()}</pre>
-        </div>
-    } else {
-      Nil
     }
 
-    val desc = if (execution.description != null && execution.description.nonEmpty) {
-      <a href={executionURL(execution.executionId)} class="description-input">
-        {execution.description}</a>
-    } else {
-      <a href={executionURL(execution.executionId)}>{execution.executionId}</a>
+    override def row(executionTableRow: AuronExecutionTableRowData): Seq[Node] = {
+      val executionUIData = executionTableRow.executionUIData
+
+      <tr>
+        <td>
+          {executionUIData.executionId.toString}
+        </td>
+        <td>
+          {descriptionCell(executionUIData)}
+        </td>
+        <td sorttable_customkey={executionUIData.numAuronNodes.toString}>
+          {executionUIData.numAuronNodes.toString}
+        </td>
+        <td sorttable_customkey={executionUIData.numFallbackNodes.toString}>
+          {executionUIData.numFallbackNodes.toString}
+        </td>
+      </tr>
     }
 
-    <div>{desc}{details}</div>
+    private def descriptionCell(execution: AuronSQLExecutionUIData): Seq[Node] = {
+      val details = if (execution.description != null && execution.description.nonEmpty) {
+        val concat = new PlanStringConcat()
+        concat.append("== Fallback Summary ==\n")
+        val fallbackSummary = execution.fallbackNodeToReason
+          .map { case (name, reason) =>
+            val id = name.substring(0, 3)
+            val nodeName = name.substring(4)
+            s"(${id.toInt}) $nodeName: $reason"
+          }
+          .mkString("\n")
+        concat.append(fallbackSummary)
+        if (execution.fallbackNodeToReason.isEmpty) {
+          concat.append("No fallback nodes")
+        }
+        concat.append("\n\n")
+        concat.append(execution.fallbackDescription)
+
+        <span onclick="this.parentNode.querySelector('.stage-details').classList.toggle('collapsed')"
+              class="expand-details">
+          +details
+        </span> ++
+          <div class="stage-details collapsed">
+            <pre>
+              {concat.toString()}
+            </pre>
+          </div>
+      } else {
+        Nil
+      }
+
+      val desc = if (execution.description != null && execution.description.nonEmpty) {
+        <a href={executionURL(execution.executionId)} class="description-input">
+          {execution.description}
+        </a>
+      } else {
+        <a href={executionURL(execution.executionId)}>
+          {execution.executionId}
+        </a>
+      }
+
+      <div>
+        {desc}{details}
+      </div>
+    }
+
+    private def executionURL(executionID: Long): String =
+      s"${UIUtils.prependBaseUri(request, parent.basePath)}/SQL/execution/?id=$executionID"
   }
 
-  private def executionURL(executionID: Long): String =
-    s"${UIUtils.prependBaseUri(request, parent.basePath)}/SQL/execution/?id=$executionID"
+  @sparkver("4.0 / 4.1")
+  private[ui] class AuronExecutionPagedTable40(
+      request: jakarta.servlet.http.HttpServletRequest,
+      parent: AuronSQLTab,
+      data: Seq[AuronSQLExecutionUIData],
+      tableHeaderId: String,
+      executionTag: String,
+      basePath: String,
+      subPath: String)
+      extends PagedTable[AuronExecutionTableRowData] {
+
+    private val (sortColumn, desc, pageSize) =
+      getAuronTableParameters(request, executionTag, "ID")
+
+    private val encodedSortColumn = URLEncoder.encode(sortColumn, UTF_8.name())
+
+    override val dataSource = new AuronExecutionDataSource(data, pageSize, sortColumn, desc)
+
+    private val parameterPath =
+      s"$basePath/$subPath/?${getAuronParameterOtherTable(request, executionTag)}"
+
+    override def tableId: String = s"$executionTag-table"
+
+    override def tableCssClass: String =
+      "table table-bordered table-sm table-striped table-head-clickable table-cell-width-limited"
+
+    override def pageLink(page: Int): String = {
+      parameterPath +
+        s"&$pageNumberFormField=$page" +
+        s"&$executionTag.sort=$encodedSortColumn" +
+        s"&$executionTag.desc=$desc" +
+        s"&$pageSizeFormField=$pageSize" +
+        s"#$tableHeaderId"
+    }
+
+    /**
+     * Returns parameters of other tables in the page.
+     */
+    def getAuronParameterOtherTable(
+        request: jakarta.servlet.http.HttpServletRequest,
+        tableTag: String): String = {
+      request.getParameterMap.asScala
+        .filterNot(_._1.startsWith(tableTag))
+        .map(parameter => parameter._1 + "=" + parameter._2(0))
+        .mkString("&")
+    }
+
+    /**
+     * Returns parameter of this table.
+     */
+    def getAuronTableParameters(
+        request: jakarta.servlet.http.HttpServletRequest,
+        tableTag: String,
+        defaultSortColumn: String): (String, Boolean, Int) = {
+      val parameterSortColumn = request.getParameter(s"$tableTag.sort")
+      val parameterSortDesc = request.getParameter(s"$tableTag.desc")
+      val parameterPageSize = request.getParameter(s"$tableTag.pageSize")
+      val sortColumn = Option(parameterSortColumn)
+        .map { sortColumn =>
+          UIUtils.decodeURLParameter(sortColumn)
+        }
+        .getOrElse(defaultSortColumn)
+      val desc =
+        Option(parameterSortDesc).map(_.toBoolean).getOrElse(sortColumn == defaultSortColumn)
+      val pageSize = Option(parameterPageSize).map(_.toInt).getOrElse(100)
+
+      (sortColumn, desc, pageSize)
+    }
+
+    override def pageSizeFormField: String = s"$executionTag.pageSize"
+
+    override def pageNumberFormField: String = s"$executionTag.page"
+
+    override def goButtonFormPath: String =
+      s"$parameterPath&$executionTag.sort=$encodedSortColumn&$executionTag.desc=$desc#$tableHeaderId"
+
+    // Information for each header: title, sortable, tooltip
+    private val headerInfo: Seq[(String, Boolean, Option[String])] = {
+      Seq(
+        ("ID", true, None),
+        ("Description", true, None),
+        ("Num Auron Nodes", true, None),
+        ("Num Fallback Nodes", true, None))
+    }
+
+    override def headers: Seq[Node] = {
+      isAuronSortColumnValid(headerInfo, sortColumn)
+
+      headerAuronRow(
+        headerInfo,
+        desc,
+        pageSize,
+        sortColumn,
+        parameterPath,
+        executionTag,
+        tableHeaderId)
+    }
+
+    def headerAuronRow(
+        headerInfo: Seq[(String, Boolean, Option[String])],
+        desc: Boolean,
+        pageSize: Int,
+        sortColumn: String,
+        parameterPath: String,
+        tableTag: String,
+        headerId: String): Seq[Node] = {
+      val row: Seq[Node] = {
+        headerInfo.map { case (header, sortable, tooltip) =>
+          if (header == sortColumn) {
+            val headerLink = Unparsed(
+              parameterPath +
+                s"&$tableTag.sort=${URLEncoder.encode(header, UTF_8.name())}" +
+                s"&$tableTag.desc=${!desc}" +
+                s"&$tableTag.pageSize=$pageSize" +
+                s"#$headerId")
+            val arrow = if (desc) "&#x25BE;" else "&#x25B4;" // UP or DOWN
+
+            <th>
+              <a href={headerLink}>
+                <span data-toggle="tooltip" data-placement="top" title={tooltip.getOrElse("")}>
+                  {header}&nbsp;{Unparsed(arrow)}
+                </span>
+              </a>
+            </th>
+          } else {
+            if (sortable) {
+              val headerLink = Unparsed(
+                parameterPath +
+                  s"&$tableTag.sort=${URLEncoder.encode(header, UTF_8.name())}" +
+                  s"&$tableTag.pageSize=$pageSize" +
+                  s"#$headerId")
+
+              <th>
+                <a href={headerLink}>
+                  <span data-toggle="tooltip" data-placement="top" title={tooltip.getOrElse("")}>
+                    {header}
+                  </span>
+                </a>
+              </th>
+            } else {
+              <th>
+                <span data-toggle="tooltip" data-placement="top" title={tooltip.getOrElse("")}>
+                  {header}
+                </span>
+              </th>
+            }
+          }
+        }
+      }
+      <thead>
+        <tr>
+          {row}
+        </tr>
+      </thead>
+    }
+
+    def isAuronSortColumnValid(
+        headerInfo: Seq[(String, Boolean, Option[String])],
+        sortColumn: String): Unit = {
+      if (!headerInfo.filter(_._2).map(_._1).contains(sortColumn)) {
+        throw new IllegalArgumentException(s"Unknown column: $sortColumn")
+      }
+    }
+
+    override def row(executionTableRow: AuronExecutionTableRowData): Seq[Node] = {
+      val executionUIData = executionTableRow.executionUIData
+
+      <tr>
+        <td>
+          {executionUIData.executionId.toString}
+        </td>
+        <td>
+          {descriptionCell(executionUIData)}
+        </td>
+        <td sorttable_customkey={executionUIData.numAuronNodes.toString}>
+          {executionUIData.numAuronNodes.toString}
+        </td>
+        <td sorttable_customkey={executionUIData.numFallbackNodes.toString}>
+          {executionUIData.numFallbackNodes.toString}
+        </td>
+      </tr>
+    }
+
+    private def descriptionCell(execution: AuronSQLExecutionUIData): Seq[Node] = {
+      val details = if (execution.description != null && execution.description.nonEmpty) {
+        val concat = new PlanStringConcat()
+        concat.append("== Fallback Summary ==\n")
+        val fallbackSummary = execution.fallbackNodeToReason
+          .map { case (name, reason) =>
+            val id = name.substring(0, 3)
+            val nodeName = name.substring(4)
+            s"(${id.toInt}) $nodeName: $reason"
+          }
+          .mkString("\n")
+        concat.append(fallbackSummary)
+        if (execution.fallbackNodeToReason.isEmpty) {
+          concat.append("No fallback nodes")
+        }
+        concat.append("\n\n")
+        concat.append(execution.fallbackDescription)
+
+        <span onclick="this.parentNode.querySelector('.stage-details').classList.toggle('collapsed')"
+              class="expand-details">
+          +details
+        </span> ++
+          <div class="stage-details collapsed">
+            <pre>{concat.toString()}</pre>
+          </div>
+      } else {
+        Nil
+      }
+
+      val desc = if (execution.description != null && execution.description.nonEmpty) {
+        <a href={executionURL(execution.executionId)} class="description-input">
+          {execution.description}</a>
+      } else {
+        <a href={executionURL(execution.executionId)}>{execution.executionId}</a>
+      }
+
+      <div>{desc}{details}</div>
+    }
+
+    private def executionURL(executionID: Long): String =
+      s"${UIUtils.prependBaseUri(request, parent.basePath)}/SQL/execution/?id=$executionID"
+  }
 }
 
 private[ui] class AuronExecutionTableRowData(val executionUIData: AuronSQLExecutionUIData)

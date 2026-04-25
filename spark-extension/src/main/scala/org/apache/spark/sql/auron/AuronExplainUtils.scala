@@ -238,7 +238,7 @@ object AuronExplainUtils {
     }
   }
 
-  @sparkver("3.1/ 3.2 / 3.3/ 3.4/ 3.5")
+  @sparkver("3.1/ 3.2 / 3.3/ 3.4/ 3.5/ 4.0/ 4.1")
   private def removeTags(plan: QueryPlan[_]): Unit = {
     def remove(p: QueryPlan[_], children: Seq[QueryPlan[_]]): Unit = {
       p.unsetTagValue(TreeNodeTag[Int]("operatorId"))
