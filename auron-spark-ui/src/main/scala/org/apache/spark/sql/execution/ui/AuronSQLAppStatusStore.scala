@@ -16,7 +16,7 @@
  */
 package org.apache.spark.sql.execution.ui
 
-import scala.jdk.CollectionConverters.asScalaIteratorConverter
+import scala.collection.JavaConverters._
 import scala.util.control.NonFatal
 
 import com.fasterxml.jackson.annotation.JsonIgnore
