@@ -27,7 +27,8 @@ trait BaseAuronHiveSuite extends SparkFunSuite with BeforeAndAfterAll {
 
   lazy val spark: SparkSession = TestAuronHive.sparkSession
 
-  protected val suiteWorkspace: String = getClass.getResource("/").getPath + "auron-tests-workdir"
+  protected val suiteWorkspace: String = classOf[BaseAuronHiveSuite].
+    getResource("/").getPath + "auron-tests-workdir"
   protected val warehouseDir: String = suiteWorkspace + "/spark-warehouse"
   protected val metastoreDir: String = suiteWorkspace + "/meta"
 
@@ -66,7 +67,7 @@ object TestAuronHive
           .set("spark.ui.enabled", "false")
           .set(
             "spark.sql.warehouse.dir",
-            getClass.getResource("/").getPath + "auron-tests-workdir/spark-warehouse")
+            classOf[BaseAuronHiveSuite].getResource("/").getPath + "auron-tests-workdir/spark-warehouse")
           .set("spark.auron.udf.singleChildFallback.enabled", "false")
           .set("spark.auron.enable.parquetHiveTableScanExec", "true")
           .set("spark.sql.hive.convertMetastoreParquet", "false"))) {}
