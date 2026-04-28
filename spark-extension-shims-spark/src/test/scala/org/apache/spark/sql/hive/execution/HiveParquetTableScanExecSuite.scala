@@ -35,10 +35,10 @@ class HiveParquetTableScanExecSuite extends AuronQueryTest with BaseAuronHiveSui
   }
 
   test("test hive parquet table partition to native") {
-    withTempView("t1") {
-      spark.sql("create table t1 (a string) stored as parquet partitioned by(pt string)")
-      spark.sql("insert into t1 partition(pt='2026-03-10') values('1')")
-      spark.sql("insert into t1 partition(pt='2026-03-11') values('1')")
+    withTempView("t2") {
+      spark.sql("create table t2 (a string) stored as parquet partitioned by(pt string)")
+      spark.sql("insert into t2 partition(pt='2026-03-10') values('1')")
+      spark.sql("insert into t2 partition(pt='2026-03-11') values('1')")
       val df = spark.sql("select * from t1 where pt = '2026-03-10'")
       df.show()
       assert(df.collect().toList.head.get(0) == "1")
